@@ -1,3 +1,3 @@
-module cpp.edu/cs3560_scheduler
+module github.com/hlin91/CS3560_Scheduler_Backup
 
 go 1.16
