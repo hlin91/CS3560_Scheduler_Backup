@@ -128,24 +128,6 @@ func (t Task) Before(op Schedulable) bool {
 	return t.Date() < op.Date()
 }
 
-// AntiTask implements an anti task in the schedule
-type AntiTask struct {
-	Task
-}
-
-func NewAntiTask(name, taskType string, date int, startTime, duration float32) (AntiTask, error) {
-	t, err := NewTask(name, taskType, date, startTime, duration)
-	if err != nil {
-		return AntiTask{}, fmt.Errorf("NewAntiTask: %v", err)
-	}
-	return AntiTask{t}, nil
-}
-
-// Cancels determines if this anti task cancels out another schedulable
-func (a AntiTask) Cancels(op Schedulable) bool {
-	return a.Date() == op.Date() && a.StartTime() == op.StartTime() && a.Duration() == op.Duration()
-}
-
 // RecurringSchedulable defines the minimum interface needed for a recurring task in the schedule
 type RecurringSchedulable interface {
 	Schedulable
@@ -242,6 +224,10 @@ func (r RecurringTask) GetSubtasks() ([]Schedulable, error) {
 
 // GetOverlappingSubtasks returns the set of subtasks that overlap a given task
 func (r RecurringTask) GetOverlappingSubtasks(task Schedulable) ([]Schedulable, error) {
+	if _, ok := task.(RecurringSchedulable); ok {
+		// Recurring tasks require a less optimal check
+		return r.GetOverlappingSubtasksRecurring(task)
+	}
 	result := []Schedulable{}
 	rStartDate, err := r.GetStartDate()
 	if err != nil {
@@ -293,6 +279,9 @@ func (r RecurringTask) GetOverlappingSubtasks(task Schedulable) ([]Schedulable, 
 }
 
 func (r RecurringTask) Overlaps(task Schedulable) bool {
+	if _, ok := task.(RecurringSchedulable); ok {
+		return r.OverlapsRecurring(task)
+	}
 	l, err := r.GetOverlappingSubtasks(task)
 	if err != nil {
 		fmt.Printf("Warning: RecurringTask.Overlaps: %v\n", err)
@@ -325,12 +314,59 @@ func (r RecurringTask) GetOverlappingSubtasksRecurring(task Schedulable) ([]Sche
 	return result, nil
 }
 
-func (r RecurringTask) OverlapsRecurring(task RecurringSchedulable) bool {
+func (r RecurringTask) OverlapsRecurring(task Schedulable) bool {
 	l, err := r.GetOverlappingSubtasksRecurring(task)
 	if err != nil {
 		fmt.Printf("Warning: RecurringTask.OverlapsRecurring: %v\n", err)
 	}
 	return len(l) > 0
+}
+
+// AntiSchedulable defines the minimum interface needed for an anti task in the schedule
+type AntiSchedulable interface {
+	Schedulable
+	Cancels(Schedulable) bool
+	GetCancelledSubtask(RecurringSchedulable) (Schedulable, bool)
+}
+
+// AntiTask implements an anti task in the schedule
+type AntiTask struct {
+	Task
+}
+
+func NewAntiTask(name, taskType string, date int, startTime, duration float32) (AntiTask, error) {
+	t, err := NewTask(name, taskType, date, startTime, duration)
+	if err != nil {
+		return AntiTask{}, fmt.Errorf("NewAntiTask: %v", err)
+	}
+	return AntiTask{t}, nil
+}
+
+// Cancels determines if this anti task cancels out another task
+func (a AntiTask) Cancels(op Schedulable) bool {
+	return a.Date() == op.Date() && a.StartTime() == op.StartTime() && a.Duration() == op.Duration()
+}
+
+// GetCancelledSubtask returns the subtask this anti task cancels and a bool to indicate
+// if such a task was found
+func (a AntiTask) GetCancelledSubtask(r RecurringSchedulable) (Schedulable, bool) {
+	aStart, _ := a.GetStartDate()
+	rStart, _ := r.GetStartDate()
+	rEnd, _ := r.GetEndDate()
+	if aStart.Before(rStart) || rEnd.Before(aStart) {
+		// This anti task is outside of the recurring range
+		return nil, false
+	}
+	if a.startTime != r.StartTime() || a.duration != r.Duration() {
+		// Start time or duration does not match up
+		return nil, false
+	}
+	// Determine if the anti task lines up with the recurrence cycle
+	if dayDelta := int64(aStart.Sub(rStart).Hours()); dayDelta%int64(r.Frequency()) == 0 {
+		t, _ := NewTask(r.Name(), r.Type(), a.date, a.startTime, a.duration)
+		return t, true
+	}
+	return nil, false
 }
 
 //!--
