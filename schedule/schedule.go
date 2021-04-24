@@ -76,7 +76,7 @@ func (s Schedule) hasDeleteConflict(task Schedulable) bool {
 	for _, t := range s.RecurringTasks {
 		// For every cancelled subtask, check if there is an overlap in the schedule with that
 		// subtask
-		if cancelled, ok := a.GetCancelledSubtask(t.(RecurringSchedulable)); ok {
+		if cancelled, ok := a.GetCancelledSubtask(t); ok {
 			if s.hasAddConflict(cancelled) {
 				return true
 			}
@@ -118,7 +118,7 @@ func (s *Schedule) AddAntiTask(name, taskType string, date int, startTime, durat
 		return fmt.Errorf("AddAntiTask: error creating task: %v", err)
 	}
 	for _, t := range s.RecurringTasks {
-		if _, ok := a.GetCancelledSubtask(t.(RecurringSchedulable)); ok {
+		if _, ok := a.GetCancelledSubtask(t); ok {
 			cancelledExists = true
 			break
 		}
@@ -166,8 +166,14 @@ func (s *Schedule) DeleteTask(name string) error {
 		delete(s.TransientTasks, name)
 		return nil
 	}
-	if _, ok := s.RecurringTasks[name]; ok {
+	if r, ok := s.RecurringTasks[name]; ok {
 		delete(s.RecurringTasks, name)
+		// Delete all corresponding anti tasks
+		for _, a := range s.AntiTasks {
+			if _, ok := a.GetCancelledSubtask(r); ok {
+				delete(s.AntiTasks, a.Name())
+			}
+		}
 		return nil
 	}
 	if a, ok := s.AntiTasks[name]; ok {
@@ -180,6 +186,102 @@ func (s *Schedule) DeleteTask(name string) error {
 	return fmt.Errorf("DeleteTask: task name does not exist in schedule")
 }
 
-// TODO: Implement EditTask
+func (s *Schedule) EditTransientTask(taskName, newName string, newDate int, newStartTime, newDuration float32) error {
+	t, ok := s.TransientTasks[taskName]
+	if !ok {
+		return fmt.Errorf("EditTransientTask: task name does not exist in schedule")
+	}
+	if newName != taskName && s.hasNameConflict(newName) {
+		return fmt.Errorf("EditTransientTask: new name already exists in schedule")
+	}
+	newTask, err := NewTask(newName, t.Type(), newDate, newStartTime, newDuration)
+	if err != nil {
+		return fmt.Errorf("EditTransientTask: %v", err)
+	}
+	if t.Date() == newDate && t.StartTime() == newStartTime && t.Duration() == newDuration {
+		// Only the name changed
+		delete(s.TransientTasks, taskName)
+		s.TransientTasks[newName] = newTask
+		return nil
+	}
+	s.DeleteTask(taskName)
+	if s.hasAddConflict(newTask) {
+		// Add back the old task
+		s.TransientTasks[taskName] = t
+		return fmt.Errorf("EditTransientTask: new details create a schedule conflict")
+	}
+	s.TransientTasks[newName] = newTask
+	return nil
+}
+
+func (s *Schedule) EditAntiTask(taskName, newName string, newDate int, newStartTime, newDuration float32) error {
+	a, ok := s.AntiTasks[taskName]
+	if !ok {
+		return fmt.Errorf("EditAntiTask: task name does not exist in schedule")
+	}
+	if newName != taskName && s.hasNameConflict(newName) {
+		return fmt.Errorf("EditAntiTask: new name already exists in schedule")
+	}
+	newTask, err := NewAntiTask(newName, a.Type(), newDate, newStartTime, newDuration)
+	if err != nil {
+		return fmt.Errorf("EditTransientTask: %v", err)
+	}
+	if a.Date() == newDate && a.StartTime() == newStartTime && a.Duration() == newDuration {
+		// Only name changed
+		delete(s.AntiTasks, taskName)
+		s.AntiTasks[newName] = newTask
+		return nil
+	}
+	if err := s.DeleteTask(taskName); err != nil {
+		return fmt.Errorf("EditTransientTask: %v", err)
+	}
+	// Find a corresponding recurring task
+	var foundCancelledTask bool
+	for _, r := range s.RecurringTasks {
+		if _, ok := newTask.GetCancelledSubtask(r); ok {
+			foundCancelledTask = true
+			break
+		}
+	}
+	if !foundCancelledTask {
+		s.AntiTasks[taskName] = a
+		return fmt.Errorf("EditTransientTask: new anti task does not correspond with any recurring task")
+	}
+	s.AntiTasks[newName] = newTask
+	return nil
+}
+
+func (s *Schedule) EditRecurringTask(taskName, newName string, newDate int, newStartTime, newDuration float32, newEndDate, newFrequency int) error {
+	r, ok := s.RecurringTasks[taskName]
+	if !ok {
+		return fmt.Errorf("EditRecurringTask: task name does not exist in schedule")
+	}
+	if newName != taskName && s.hasNameConflict(newName) {
+		return fmt.Errorf("EditRecurringTask: new name already exists in schedule")
+	}
+	newTask, err := NewRecurringTask(newName, r.Type(), newDate, newStartTime, newDuration, newEndDate, newFrequency)
+	if err != nil {
+		return fmt.Errorf("EditRecurringTask: %v", err)
+	}
+	if r.Date() == newDate && r.StartTime() == newStartTime && r.Duration() == newDuration && r.EndDate() == newEndDate && r.Frequency() == newFrequency {
+		// Only name changed
+		delete(s.RecurringTasks, taskName)
+		s.RecurringTasks[newName] = newTask
+		return nil
+	}
+	delete(s.RecurringTasks, taskName)
+	if s.hasAddConflict(newTask) {
+		// Add back old task
+		s.RecurringTasks[taskName] = r
+		return fmt.Errorf("EditTransientTask: new details create a schedule conflict")
+	}
+	// Delete all anti tasks of the old recurring task
+	for _, a := range s.AntiTasks {
+		if _, ok := a.GetCancelledSubtask(r); ok {
+			delete(s.AntiTasks, a.Name())
+		}
+	}
+	return nil
+}
 
 //!--
