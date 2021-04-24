@@ -146,11 +146,46 @@ func (a AntiTask) Cancels(op Schedulable) bool {
 	return a.Date() == op.Date() && a.StartTime() == op.StartTime() && a.Duration() == op.Duration()
 }
 
+// RecurringSchedulable defines the minimum interface needed for a recurring task in the schedule
+type RecurringSchedulable interface {
+	Schedulable
+	Frequency() int
+	GetEndYear() int
+	GetEndMonth() int
+	GetEndDay() int
+	GetEndDate() (time.Time, error)
+	GetSubtasks() ([]Schedulable, error)
+	GetOverlappingSubtasks(Schedulable) ([]Schedulable, error)
+	GetOverlappingSubtasksRecurring(Schedulable) ([]Schedulable, error)
+	OverlapsRecurring(RecurringSchedulable) bool
+}
+
 // RecurringTask implements a recurrint task in the schedule
 type RecurringTask struct {
 	Task
 	endDate   int
 	frequency int
+}
+
+func NewRecurringTask(name, taskType string, date int, startTime, duration float32, endDate, frequency int) (RecurringTask, error) {
+	t, err := NewTask(name, taskType, date, startTime, duration)
+	if err != nil {
+		return RecurringTask{}, fmt.Errorf("NewRecurringTask: %v", err)
+	}
+	if _, err := intToDate(endDate); err != nil {
+		return RecurringTask{}, fmt.Errorf("NewRecurringTask: bad end date")
+	}
+	if frequency < 1 || frequency > 7 {
+		return RecurringTask{}, fmt.Errorf("NewRecurringTask: bad frequency")
+	}
+	result := RecurringTask{t}
+	result.endDate = endDate
+	result.frequency = frequency
+	return result, nil
+}
+
+func (r RecurringTask) Frequency() int {
+	return r.frequency
 }
 
 func (r RecurringTask) String() string {
@@ -184,8 +219,8 @@ func (r RecurringTask) GetEndDate() (time.Time, error) {
 }
 
 // GetSubtasks expands the recurring tasks into a series of subtasks
-func (r RecurringTask) GetSubtasks() ([]Task, error) {
-	result := []Task{}
+func (r RecurringTask) GetSubtasks() ([]Schedulable, error) {
+	result := []Schedulable{}
 	startDate, err := r.GetStartDate()
 	if err != nil {
 		return result, fmt.Errorf("GetSubtasks: %v", err)
@@ -197,7 +232,7 @@ func (r RecurringTask) GetSubtasks() ([]Task, error) {
 	for startDate.Before(endDate) {
 		t, err := NewTask(r.name, r.taskType, dateToInt(startDate), r.startTime, r.duration)
 		if err != nil {
-			return []Task{}, err
+			return []Schedulable{}, err
 		}
 		result = append(result, t)
 		startDate = startDate.Add(24 * time.Hour)
@@ -206,8 +241,8 @@ func (r RecurringTask) GetSubtasks() ([]Task, error) {
 }
 
 // GetOverlappingSubtasks returns the set of subtasks that overlap a given task
-func (r RecurringTask) GetOverlappingSubtasks(task Schedulable) ([]Task, error) {
-	result := []Task{}
+func (r RecurringTask) GetOverlappingSubtasks(task Schedulable) ([]Schedulable, error) {
+	result := []Schedulable{}
 	rStartDate, err := r.GetStartDate()
 	if err != nil {
 		return result, fmt.Errorf("GetOverlappingSubtasks: %v", err)
@@ -266,8 +301,9 @@ func (r RecurringTask) Overlaps(task Schedulable) bool {
 }
 
 // GetOverlappingSubtasksRecurring returns the set of subtasks that overlap a recurring task
-func (r RecurringTask) GetOverlappingSubtasksRecurring(task *RecurringTask) ([]Task, error) {
-	result := []Task{}
+// This can also find the overlap with a non recurring task but is less optimal
+func (r RecurringTask) GetOverlappingSubtasksRecurring(task Schedulable) ([]Schedulable, error) {
+	result := []Schedulable{}
 	startDate, err := r.GetStartDate()
 	if err != nil {
 		return result, fmt.Errorf("GetOverlappingSubtasksRecurring: %v", err)
@@ -275,12 +311,6 @@ func (r RecurringTask) GetOverlappingSubtasksRecurring(task *RecurringTask) ([]T
 	endDate, err := r.GetEndDate()
 	if err != nil {
 		return result, fmt.Errorf("GetOverlappingSubtasksRecurring: %v", err)
-	}
-	if d, _ := task.GetStartDate(); startDate.Before(d) {
-		startDate = d
-	}
-	if d, _ := task.GetEndDate(); d.Before(endDate) {
-		endDate = d
 	}
 	for startDate.Before(endDate) {
 		t, err := NewTask(r.name, r.taskType, dateToInt(startDate), r.startTime, r.duration)
@@ -290,12 +320,12 @@ func (r RecurringTask) GetOverlappingSubtasksRecurring(task *RecurringTask) ([]T
 		if task.Overlaps(t) {
 			result = append(result, t)
 		}
-		startDate = startDate.Add(24 * time.Hour)
+		startDate = startDate.Add(24 * time.Hour * time.Duration(r.frequency))
 	}
 	return result, nil
 }
 
-func (r RecurringTask) OverlapsRecurring(task *RecurringTask) bool {
+func (r RecurringTask) OverlapsRecurring(task RecurringSchedulable) bool {
 	l, err := r.GetOverlappingSubtasksRecurring(task)
 	if err != nil {
 		fmt.Printf("Warning: RecurringTask.OverlapsRecurring: %v\n", err)
