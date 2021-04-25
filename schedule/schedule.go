@@ -3,6 +3,7 @@ package schedule
 
 import (
 	"fmt"
+	"time"
 )
 
 type Schedule struct {
@@ -16,7 +17,7 @@ func NewSchedule() Schedule {
 }
 
 // hasAnti checks if an anti task that cancels the specified task exists in the schedule
-func (s Schedule) hasAnti(task Schedulable) bool {
+func (s Schedule) hasAnti(task Task) bool {
 	for _, anti := range s.AntiTasks {
 		if anti.Cancels(task) {
 			return true
@@ -40,7 +41,7 @@ func (s Schedule) hasNameConflict(name string) bool {
 }
 
 // hasAddConflict checks if a task will produce scheduling conflicts if added
-func (s Schedule) hasAddConflict(task Schedulable) bool {
+func (s Schedule) hasAddConflict(task Task) bool {
 	// Check against all transient tasks
 	for n, t := range s.TransientTasks {
 		if n == task.Name() {
@@ -67,9 +68,9 @@ func (s Schedule) hasAddConflict(task Schedulable) bool {
 }
 
 // hasDeleteConflict checks if a task will produce a scheduling conflict if deleted
-func (s Schedule) hasDeleteConflict(task Schedulable) bool {
+func (s Schedule) hasDeleteConflict(task Task) bool {
 	// Only have to check deletion conflicts if task is an anti task
-	a, ok := task.(AntiSchedulable)
+	a, ok := task.(AntiTask)
 	if !ok {
 		return false
 	}
@@ -147,7 +148,7 @@ func (s *Schedule) AddRecurringTask(name, taskType string, date int, startTime, 
 }
 
 // GetTask gets a task in the schedule by name
-func (s Schedule) GetTask(name string) (Schedulable, error) {
+func (s Schedule) GetTask(name string) (Task, error) {
 	if t, ok := s.TransientTasks[name]; ok {
 		return t, nil
 	}
@@ -186,6 +187,7 @@ func (s *Schedule) DeleteTask(name string) error {
 	return fmt.Errorf("DeleteTask: task name does not exist in schedule")
 }
 
+// EditTransientTask edits the details of an existing transient task in the schedule
 func (s *Schedule) EditTransientTask(taskName, newName string, newDate int, newStartTime, newDuration float32) error {
 	t, ok := s.TransientTasks[taskName]
 	if !ok {
@@ -214,6 +216,7 @@ func (s *Schedule) EditTransientTask(taskName, newName string, newDate int, newS
 	return nil
 }
 
+// EditAntiTask edits the details of an existing anti task in the schedule
 func (s *Schedule) EditAntiTask(taskName, newName string, newDate int, newStartTime, newDuration float32) error {
 	a, ok := s.AntiTasks[taskName]
 	if !ok {
@@ -251,6 +254,7 @@ func (s *Schedule) EditAntiTask(taskName, newName string, newDate int, newStartT
 	return nil
 }
 
+// EditRecurringTask edits the details of an existing recurring task in the schedule
 func (s *Schedule) EditRecurringTask(taskName, newName string, newDate int, newStartTime, newDuration float32, newEndDate, newFrequency int) error {
 	r, ok := s.RecurringTasks[taskName]
 	if !ok {
@@ -282,6 +286,69 @@ func (s *Schedule) EditRecurringTask(taskName, newName string, newDate int, newS
 		}
 	}
 	return nil
+}
+
+// Project specifications are vagues so we'll consider all years
+
+// GetTasksByMonth gets all tasks/subtasks within a specified month
+func (s Schedule) GetTasksByMonth(month int) ([]Task, error) {
+	result := []Task{}
+	// Get the transient tasks
+	for _, t := range s.TransientTasks {
+		if t.GetStartMonth() == month {
+			result = append(result, t)
+		}
+	}
+	// Get the recurring subtasks
+	for _, r := range s.RecurringTasks {
+		subtasks, err := r.GetSubtasks()
+		if err != nil {
+			return []Task{}, fmt.Errorf("GetTasksByMonth: error getting subtasks: %v", err)
+		}
+		for _, sub := range subtasks {
+			if sub.GetStartMonth() == month && !s.hasAnti(sub) {
+				result = append(result, sub)
+			}
+		}
+	}
+	return result, nil
+}
+
+// GetTasksByDay gets all tasks/subtasks starting at a specified month and day
+func (s Schedule) GetTasksByDay(month, day int) ([]Task, error) {
+	result := []Task{}
+	byMonth, err := s.GetTasksByMonth(month)
+	if err != nil {
+		return result, fmt.Errorf("GetTasksByDay: %v", err)
+	}
+	for _, t := range byMonth {
+		if t.GetStartDay() == day {
+			result = append(result, t)
+		}
+	}
+	return result, nil
+}
+
+// GetTasksByWeek gets all tasks/subtasks occuring in the week of the specified month and day
+func (s Schedule) GetTasksByWeek(month, day int) ([]Task, error) {
+	result := []Task{}
+	byMonth, err := s.GetTasksByMonth(month)
+	if err != nil {
+		return result, fmt.Errorf("GetTasksByWeek: %v", err)
+	}
+	for _, t := range byMonth {
+		date, err := t.GetStartDate()
+		if err != nil {
+			return result, fmt.Errorf("GetTasksByWeek: %v", err)
+		}
+		targetDate := time.Date(t.GetStartYear(), time.Month(month), day, 0, 0, 0, 0, time.UTC)
+		_, week := date.ISOWeek()
+		_, targetWeek := targetDate.ISOWeek()
+		if week == targetWeek {
+			result = append(result, t)
+		}
+	}
+	return result, nil
 }
 
 //!--
