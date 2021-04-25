@@ -205,10 +205,6 @@ func (r RecurringTask) GetSubtasks() ([]Task, error) {
 
 // GetOverlappingSubtasks returns the set of subtasks that overlap a given task
 func (r RecurringTask) GetOverlappingSubtasks(task Task) ([]Task, error) {
-	if _, ok := task.(RecurringTask); ok {
-		// Recurring tasks require a less optimal check
-		return r.GetOverlappingSubtasksRecurring(task)
-	}
 	result := []Task{}
 	rStartDate, err := r.GetStartDate()
 	if err != nil {
@@ -260,9 +256,6 @@ func (r RecurringTask) GetOverlappingSubtasks(task Task) ([]Task, error) {
 }
 
 func (r RecurringTask) Overlaps(task Task) bool {
-	if recur, ok := task.(RecurringTask); ok {
-		return r.OverlapsRecurring(recur)
-	}
 	l, err := r.GetOverlappingSubtasks(task)
 	if err != nil {
 		fmt.Printf("Warning: RecurringTask.Overlaps: %v\n", err)
@@ -329,18 +322,18 @@ func (a AntiTask) GetCancelledSubtask(r RecurringTask) (Task, bool) {
 	rEnd, _ := r.GetEndDate()
 	if aStart.Before(rStart) || rEnd.Before(aStart) {
 		// This anti task is outside of the recurring range
-		return nil, false
+		return Task{}, false
 	}
 	if a.startTime != r.StartTime() || a.duration != r.Duration() {
 		// Start time or duration does not match up
-		return nil, false
+		return Task{}, false
 	}
 	// Determine if the anti task lines up with the recurrence cycle
 	if dayDelta := int64(aStart.Sub(rStart).Hours()); dayDelta%int64(r.Frequency()) == 0 {
 		t, _ := NewTask(r.Name(), r.Type(), a.date, a.startTime, a.duration)
 		return t, true
 	}
-	return nil, false
+	return Task{}, false
 }
 
 //!--

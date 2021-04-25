@@ -70,10 +70,10 @@ func (s Schedule) hasAddConflict(task Task) bool {
 // hasDeleteConflict checks if a task will produce a scheduling conflict if deleted
 func (s Schedule) hasDeleteConflict(task Task) bool {
 	// Only have to check deletion conflicts if task is an anti task
-	a, ok := task.(AntiTask)
-	if !ok {
+	if !isAntiType(task.Type()) {
 		return false
 	}
+	a := AntiTask{task}
 	for _, t := range s.RecurringTasks {
 		// For every cancelled subtask, check if there is an overlap in the schedule with that
 		// subtask
@@ -147,20 +147,6 @@ func (s *Schedule) AddRecurringTask(name, taskType string, date int, startTime, 
 	return nil
 }
 
-// GetTask gets a task in the schedule by name
-func (s Schedule) GetTask(name string) (Task, error) {
-	if t, ok := s.TransientTasks[name]; ok {
-		return t, nil
-	}
-	if t, ok := s.AntiTasks[name]; ok {
-		return t, nil
-	}
-	if t, ok := s.RecurringTasks[name]; ok {
-		return t, nil
-	}
-	return nil, fmt.Errorf("GetTask: task name does not exist in schedule")
-}
-
 // DeleteTask deletes a task in the schedule by name
 func (s *Schedule) DeleteTask(name string) error {
 	if _, ok := s.TransientTasks[name]; ok {
@@ -178,7 +164,7 @@ func (s *Schedule) DeleteTask(name string) error {
 		return nil
 	}
 	if a, ok := s.AntiTasks[name]; ok {
-		if s.hasDeleteConflict(a) {
+		if s.hasDeleteConflict(a.Task) {
 			return fmt.Errorf("DeleteTask: deletion creates a schedule conflict")
 		}
 		delete(s.AntiTasks, name)
@@ -274,7 +260,7 @@ func (s *Schedule) EditRecurringTask(taskName, newName string, newDate int, newS
 		return nil
 	}
 	delete(s.RecurringTasks, taskName)
-	if s.hasAddConflict(newTask) {
+	if s.hasAddConflict(newTask.Task) {
 		// Add back old task
 		s.RecurringTasks[taskName] = r
 		return fmt.Errorf("EditTransientTask: new details create a schedule conflict")
