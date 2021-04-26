@@ -170,24 +170,6 @@ func (s *Schedule) AddAntiTask(name, taskType string, date int, startTime, durat
 	return nil
 }
 
-// addAntiTaskWithoutRecurring creates and adds an anti task to the schedule without the restriction
-// of having a corresponding recurring task. This is useful for reading anti tasks from a json file
-func (s *Schedule) addAntiTaskWithoutRecurring(name, taskType string, date int, startTime, duration float32) error {
-	if s.hasNameConflict(name) {
-		return fmt.Errorf("AddAntiTaskWithoutRecurring: task name already exists")
-	}
-	if !isAntiType(taskType) {
-		return fmt.Errorf("AddAntiTaskWithoutRecurring: %q is not an anti type", taskType)
-	}
-	a, err := NewAntiTask(name, taskType, date, startTime, duration)
-	if err != nil {
-		return fmt.Errorf("AddAntiTaskWithoutRecurring: error creating task: %v", err)
-	}
-	s.AntiTasks[name] = a
-	return nil
-
-}
-
 // AddRecurringTask creates and adds a recurring task to the schedule
 func (s *Schedule) AddRecurringTask(name, taskType string, date int, startTime, duration float32, endDate, frequency int) error {
 	if s.hasNameConflict(name) {
@@ -400,5 +382,10 @@ func (s Schedule) GetTasksByWeek(month, day int) ([]Task, error) {
 }
 
 // TODO: Implement file I/O
+// Tasks should be added to the schedule in this order
+// 1. Recurring tasks
+// 2. Anti tasks
+// 3. Transient tasks
+// This will prevent scheduling conflicts due to insertion order
 
 //!--
