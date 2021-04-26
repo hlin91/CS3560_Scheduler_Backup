@@ -53,15 +53,35 @@ func (s Schedule) hasAddConflict(task Task) bool {
 		}
 	}
 	// Check against all recurring tasks
-	for n, t := range s.RecurringTasks {
-		if n == task.Name {
-			continue
-		}
+	for _, t := range s.RecurringTasks {
 		overlaps, _ := t.GetOverlappingSubtasks(task)
 		for _, o := range overlaps {
 			if !s.hasAnti(o) {
 				return true
 			}
+		}
+	}
+	return false
+}
+
+// hasAddConflictRecurring checks if a recurring task will produce scheduling conflicts if added
+func (s Schedule) hasAddConflictRecurring(task RecurringTask) bool {
+	for _, t := range s.TransientTasks {
+		overlaps, _ := task.GetOverlappingSubtasks(t)
+		for _, o := range overlaps {
+			if !s.hasAnti(o) {
+				return true
+			}
+		}
+	}
+	// Check against all recurring tasks
+	// As per the project specs, anti tasks cannot be applied to overlaps between 2 recurring tasks
+	for n, t := range s.RecurringTasks {
+		if n == task.Name {
+			continue
+		}
+		if task.OverlapsRecurring(t) {
+			return true
 		}
 	}
 	return false
@@ -151,7 +171,7 @@ func (s *Schedule) AddAntiTask(name, taskType string, date int, startTime, durat
 }
 
 // addAntiTaskWithoutRecurring creates and adds an anti task to the schedule without the restriction
-// of having a corresponding recurring task
+// of having a corresponding recurring task. This is useful for reading anti tasks from a json file
 func (s *Schedule) addAntiTaskWithoutRecurring(name, taskType string, date int, startTime, duration float32) error {
 	if s.hasNameConflict(name) {
 		return fmt.Errorf("AddAntiTaskWithoutRecurring: task name already exists")
@@ -179,6 +199,9 @@ func (s *Schedule) AddRecurringTask(name, taskType string, date int, startTime, 
 	t, err := NewRecurringTask(name, taskType, date, startTime, duration, endDate, frequency)
 	if err != nil {
 		return fmt.Errorf("AddRecurringTask: error creating task: %v", err)
+	}
+	if s.hasAddConflictRecurring(t) {
+		return fmt.Errorf("AddRecurringTask: task creates scheduling conflict")
 	}
 	s.RecurringTasks[name] = t
 	return nil
@@ -210,7 +233,7 @@ func (s *Schedule) DeleteTask(name string) error {
 	return fmt.Errorf("DeleteTask: task name does not exist in schedule")
 }
 
-// EditTransientTask edits the details of an existing transient task in the schedule
+// EditTransienTask edits the details of an existing transient task in the schedule
 func (s *Schedule) EditTransientTask(taskName, newName string, newDate int, newStartTime, newDuration float32) error {
 	t, ok := s.TransientTasks[taskName]
 	if !ok {
@@ -250,7 +273,7 @@ func (s *Schedule) EditAntiTask(taskName, newName string, newDate int, newStartT
 	}
 	newTask, err := NewAntiTask(newName, a.Type, newDate, newStartTime, newDuration)
 	if err != nil {
-		return fmt.Errorf("EditTransientTask: %v", err)
+		return fmt.Errorf("EditAntiTask: %v", err)
 	}
 	if a.Date == newDate && a.StartTime == newStartTime && a.Duration == newDuration {
 		// Only name changed
@@ -259,7 +282,7 @@ func (s *Schedule) EditAntiTask(taskName, newName string, newDate int, newStartT
 		return nil
 	}
 	if err := s.DeleteTask(taskName); err != nil {
-		return fmt.Errorf("EditTransientTask: %v", err)
+		return fmt.Errorf("EditAntiTask: %v", err)
 	}
 	// Find a corresponding recurring task
 	var foundCancelledTask bool
@@ -271,7 +294,7 @@ func (s *Schedule) EditAntiTask(taskName, newName string, newDate int, newStartT
 	}
 	if !foundCancelledTask {
 		s.AntiTasks[taskName] = a
-		return fmt.Errorf("EditTransientTask: new anti task does not correspond with any recurring task")
+		return fmt.Errorf("EditAntiTask: new anti task does not correspond with any recurring task")
 	}
 	s.AntiTasks[newName] = newTask
 	return nil
@@ -297,15 +320,17 @@ func (s *Schedule) EditRecurringTask(taskName, newName string, newDate int, newS
 		return nil
 	}
 	delete(s.RecurringTasks, taskName)
-	if s.hasAddConflict(newTask.Task) {
+	if s.hasAddConflictRecurring(newTask) {
 		// Add back old task
 		s.RecurringTasks[taskName] = r
-		return fmt.Errorf("EditTransientTask: new details create a schedule conflict")
+		return fmt.Errorf("EditRecurringTask: new details create a schedule conflict")
 	}
-	// Delete all anti tasks of the old recurring task
+	// Delete all anti tasks of the old recurring task that do not match up with the new task
 	for _, a := range s.AntiTasks {
 		if _, ok := a.GetCancelledSubtask(r); ok {
-			delete(s.AntiTasks, a.Name)
+			if _, ok := a.GetCancelledSubtask(newTask); !ok {
+				delete(s.AntiTasks, a.Name)
+			}
 		}
 	}
 	return nil
