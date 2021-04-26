@@ -40,9 +40,14 @@ func isRecurringType(s string) bool {
 
 // intToDate converts integer date format to a time.Time struct
 func intToDate(date int) (time.Time, error) {
-	const dateFormat = "2020-01-02"
-	t, err := time.Parse(dateFormat, fmt.Sprintf("%04d-%02d-%02d", date/10000, (date/100)%100, date%100))
-	return t, err
+	year := date / 10000
+	month := (date / 100) % 100
+	day := date % 100
+	t := time.Date(date/10000, time.Month((date/100)%100), date%100, 0, 0, 0, 0, time.UTC)
+	if t.Year() != year || int(t.Month()) != month || t.Day() != day {
+		return t, fmt.Errorf("bad date")
+	}
+	return t, nil
 }
 
 // dateToInt converts a time.Time struct to an integer date format
