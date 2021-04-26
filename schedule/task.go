@@ -74,7 +74,8 @@ func (t Task) GetStartDateWithoutTime() (time.Time, error) {
 func (t Task) Overlaps(op Task) bool {
 	time1, _ := t.GetStartDate()
 	time2, _ := op.GetStartDate()
-	timeDelta := math.Abs(float64(time1.Unix() - time2.Unix()))
+	// Difference in start date in hours
+	timeDelta := math.Abs(float64(time1.Unix()-time2.Unix())) / (60 * 60)
 	var earlierTask Task
 	if t.Before(op) {
 		earlierTask = t
@@ -284,8 +285,16 @@ func NewAntiTask(name, taskType string, date int, startTime, duration float32) (
 }
 
 // Cancels determines if this anti task cancels out another task
-func (a AntiTask) Cancels(op Task) bool {
-	return a.Date == op.Date && a.StartTime == op.StartTime && a.Duration == op.Duration
+func (a AntiTask) Cancels(t Task) bool {
+	date1, _ := a.GetStartDate()
+	date2, _ := t.GetStartDate()
+	if date2.Before(date1) {
+		// Cannot cancel
+		return false
+	}
+	// Difference in start time in hours
+	timeDelta := float32(math.Abs(float64(date1.Unix()-date2.Unix())) / (60 * 60))
+	return a.Duration >= timeDelta+t.Duration
 }
 
 // GetCancelledSubtask returns the subtask this anti task cancels and a bool to indicate
