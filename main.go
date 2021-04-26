@@ -6,6 +6,7 @@ import (
 	"github.com/hlin91/CS3560_Scheduler_Backup/schedule"
 	"os"
 	"strconv"
+	"strings"
 )
 
 const (
@@ -42,6 +43,22 @@ func main() {
 	}
 }
 
+// Convert a string of format YYYY-MM-DD to a date integer for the scheduler
+func stringToDateInt(s string) (int, error) {
+	tok := strings.Split(s, "-")
+	if len(tok) != 3 {
+		return 0, fmt.Errorf("stringToDateInt: string does not match expected format")
+	}
+	year, _ := strconv.Atoi(tok[0])
+	month, _ := strconv.Atoi(tok[1])
+	day, _ := strconv.Atoi(tok[2])
+	date, err := strconv.Atoi(fmt.Sprintf("%04d%02d%02d", year, month, day))
+	if err != nil {
+		return 0, fmt.Errorf("stringToDateInt: string is non-numeric")
+	}
+	return date, nil
+}
+
 func displayHeader() {
 	fmt.Println("==================================================")
 	fmt.Println("Welcome to PSS!")
@@ -73,6 +90,7 @@ func makeMenu(s *schedule.Schedule) schedule.Menu {
 	options = append(options, schedule.NewScheduleMenuItem("View by week", s, viewTaskByWeek))
 	options = append(options, schedule.NewScheduleMenuItem("View by day", s, viewTaskByDay))
 	options = append(options, schedule.NewScheduleMenuItem("Delete a task", s, deleteTask))
+	// TODO: Add edit task option
 	// TODO: Add file IO options
 	m := []schedule.Menuer{}
 	for _, o := range options {
@@ -118,9 +136,9 @@ func createTask(s *schedule.Schedule) error {
 			fmt.Print("Enter task type: ")
 			input.Scan()
 			taskType := input.Text()
-			fmt.Print("Enter date (eg. 20201114): ")
+			fmt.Print("Enter date (eg. 2020-11-14): ")
 			input.Scan()
-			date, err := strconv.Atoi(input.Text())
+			date, err := stringToDateInt(input.Text())
 			if err != nil {
 				return fmt.Errorf("bad date entered")
 			}
@@ -142,9 +160,9 @@ func createTask(s *schedule.Schedule) error {
 			fmt.Print("Enter task name: ")
 			input.Scan()
 			name := input.Text()
-			fmt.Print("Enter date (eg. 20201114): ")
+			fmt.Print("Enter date (eg. 2020-11-14): ")
 			input.Scan()
-			date, err := strconv.Atoi(input.Text())
+			date, err := stringToDateInt(input.Text())
 			if err != nil {
 				return fmt.Errorf("bad date entered")
 			}
@@ -170,9 +188,9 @@ func createTask(s *schedule.Schedule) error {
 			fmt.Print("Enter task type: ")
 			input.Scan()
 			taskType := input.Text()
-			fmt.Print("Enter date (eg. 20201114): ")
+			fmt.Print("Enter date (eg. 2020-11-14): ")
 			input.Scan()
-			date, err := strconv.Atoi(input.Text())
+			date, err := stringToDateInt(input.Text())
 			if err != nil {
 				return fmt.Errorf("bad date entered")
 			}
@@ -188,11 +206,11 @@ func createTask(s *schedule.Schedule) error {
 			if err != nil {
 				return fmt.Errorf("bad duration entered")
 			}
-			fmt.Print("Enter end date (eg. 20201114): ")
+			fmt.Print("Enter end date (eg. 2020-11-14): ")
 			input.Scan()
-			endDate, err := strconv.Atoi(input.Text())
+			endDate, err := stringToDateInt(input.Text())
 			if err != nil {
-				return fmt.Errorf("bad end date entered")
+				return fmt.Errorf("bad date entered")
 			}
 			fmt.Print("Enter frequency (1 - 7): ")
 			input.Scan()
