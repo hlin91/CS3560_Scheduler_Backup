@@ -19,13 +19,13 @@ type Task struct {
 func NewTask(name, taskType string, date int, startTime, duration float32) (Task, error) {
 	var result Task
 	if startTime < 0 || startTime > 23.75 {
-		return result, fmt.Errorf("NewTask: bad start time")
+		return result, fmt.Errorf("bad start time")
 	}
 	if duration < 0 || duration > 23.75 {
-		return result, fmt.Errorf("NewTask: bad duration")
+		return result, fmt.Errorf("bad duration")
 	}
 	if _, err := intToDate(date); err != nil {
-		return result, fmt.Errorf("NewTask: bad date")
+		return result, fmt.Errorf("bad date")
 	}
 	result.Name = name
 	result.Date = date
@@ -38,7 +38,7 @@ func NewTask(name, taskType string, date int, startTime, duration float32) (Task
 }
 
 func (t Task) String() string {
-	return fmt.Sprintf("Name: %v\nType: %v\nStart Date: %v\nStart Time: %v\nDuration: %v", t.Name, t.Type, t.Date, t.StartTime, t.Duration)
+	return fmt.Sprintf("--------------------------------\nName: %v\nType: %v\nStart Date: %v\nStart Time: %v\nDuration: %v\n--------------------------------", t.Name, t.Type, t.Date, t.StartTime, t.Duration)
 }
 
 func (t Task) GetStartYear() int {
@@ -103,18 +103,18 @@ type RecurringTask struct {
 func NewRecurringTask(name, taskType string, date int, startTime, duration float32, endDate, frequency int) (RecurringTask, error) {
 	t, err := NewTask(name, taskType, date, startTime, duration)
 	if err != nil {
-		return RecurringTask{}, fmt.Errorf("NewRecurringTask: %v", err)
+		return RecurringTask{}, err
 	}
 	start, _ := intToDate(date)
 	end, err := intToDate(endDate)
 	if err != nil {
-		return RecurringTask{}, fmt.Errorf("NewRecurringTask: bad end date")
+		return RecurringTask{}, fmt.Errorf("bad end date")
 	}
 	if end.Before(start) {
-		return RecurringTask{}, fmt.Errorf("NewRecurringTask: end date before start date")
+		return RecurringTask{}, fmt.Errorf("end date before start date")
 	}
 	if frequency < 1 || frequency > 7 {
-		return RecurringTask{}, fmt.Errorf("NewRecurringTask: bad frequency")
+		return RecurringTask{}, fmt.Errorf("bad frequency")
 	}
 	result := RecurringTask{
 		Task:      t,
@@ -125,7 +125,7 @@ func NewRecurringTask(name, taskType string, date int, startTime, duration float
 }
 
 func (r RecurringTask) String() string {
-	return r.Task.String() + fmt.Sprintf("\nEnd Date: %v\nFrequency: %v", r.EndDate, r.Frequency)
+	return r.Task.String() + fmt.Sprintf("--------------------------------\nEnd Date: %v\nFrequency: %v\n--------------------------------", r.EndDate, r.Frequency)
 }
 
 func (r RecurringTask) GetEndYear() int {
@@ -279,7 +279,7 @@ type AntiTask struct {
 func NewAntiTask(name, taskType string, date int, startTime, duration float32) (AntiTask, error) {
 	t, err := NewTask(name, taskType, date, startTime, duration)
 	if err != nil {
-		return AntiTask{}, fmt.Errorf("NewAntiTask: %v", err)
+		return AntiTask{}, err
 	}
 	return AntiTask{t}, nil
 }

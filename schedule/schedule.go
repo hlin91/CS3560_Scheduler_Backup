@@ -13,7 +13,11 @@ type Schedule struct {
 }
 
 func NewSchedule() Schedule {
-	return Schedule{}
+	return Schedule{
+		TransientTasks: map[string]Task{},
+		AntiTasks:      map[string]AntiTask{},
+		RecurringTasks: map[string]RecurringTask{},
+	}
 }
 
 // hasAnti checks if an anti task that cancels the specified task exists in the schedule
