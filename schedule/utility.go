@@ -55,6 +55,11 @@ func dateToInt(date time.Time) int {
 	return (date.Year() * 10000) + (int(date.Month()) * 100) + date.Day()
 }
 
+// dateIntToString converts a integer date format to a more readable string
+func dateIntToString(date int) string {
+	return fmt.Sprintf("%04d-%02d-%02d", date/10000, (date/100)%100, date%100)
+}
+
 // datesOverlap determines if two dates with given durations overlap
 func datesOverlap(date1 time.Time, duration1 int, date2 time.Time, duration2 int) bool {
 	// Difference between start times in hours

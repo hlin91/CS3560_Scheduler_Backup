@@ -38,7 +38,7 @@ func NewTask(name, taskType string, date int, startTime, duration float32) (Task
 }
 
 func (t Task) String() string {
-	return fmt.Sprintf("--------------------------------\nName: %v\nType: %v\nStart Date: %v\nStart Time: %v\nDuration: %v\n--------------------------------", t.Name, t.Type, t.Date, t.StartTime, t.Duration)
+	return fmt.Sprintf("--------------------------------\nName: %v\nType: %v\nStart Date: %v\nStart Time: %v\nDuration: %v\n--------------------------------", t.Name, t.Type, dateIntToString(t.Date), t.StartTime, t.Duration)
 }
 
 func (t Task) GetStartYear() int {
@@ -125,7 +125,7 @@ func NewRecurringTask(name, taskType string, date int, startTime, duration float
 }
 
 func (r RecurringTask) String() string {
-	return r.Task.String() + fmt.Sprintf("--------------------------------\nEnd Date: %v\nFrequency: %v\n--------------------------------", r.EndDate, r.Frequency)
+	return r.Task.String() + fmt.Sprintf("--------------------------------\nEnd Date: %v\nFrequency: %v\n--------------------------------", dateIntToString(r.EndDate), r.Frequency)
 }
 
 func (r RecurringTask) GetEndYear() int {
