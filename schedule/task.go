@@ -116,6 +116,9 @@ func NewRecurringTask(name, taskType string, date int, startTime, duration float
 	if frequency < 1 || frequency > 7 {
 		return RecurringTask{}, fmt.Errorf("bad frequency")
 	}
+	// if frequency != 1 && frequency != 7 {
+	// 	return RecurringTask{}, fmt.Errorf("bad frequency")
+	// }
 	result := RecurringTask{
 		Task:      t,
 		EndDate:   endDate,
@@ -171,7 +174,7 @@ func (r RecurringTask) GetSubtasks() ([]Task, error) {
 			return []Task{}, err
 		}
 		result = append(result, t)
-		startDate = startDate.Add(24 * time.Hour)
+		startDate = startDate.Add(24 * time.Hour * time.Duration(r.Frequency))
 	}
 	return result, nil
 }
@@ -191,11 +194,11 @@ func (r RecurringTask) GetOverlappingSubtasks(task Task) ([]Task, error) {
 	if err != nil {
 		return result, fmt.Errorf("GetOverlappingSubtasks: %v", err)
 	}
-	if taskDate.Before(rStartDate) || rEndDate.Before(taskDate) {
+	if rEndDate.Before(taskDate) {
 		return result, nil
 	}
+	// Difference in start days in days
 	startDayDelta := int(math.Abs(float64(rStartDate.Unix()-taskDate.Unix())) / (60 * 60 * 24))
-	// Check the cycle before, the cycle of, and the cycle after the task for overlaps
 	if startDayDelta%r.Frequency == 0 {
 		// Get the subtask for this day
 		t, err := NewTask(r.Name, r.Type, task.Date, r.StartTime, r.Duration)
@@ -207,7 +210,7 @@ func (r RecurringTask) GetOverlappingSubtasks(task Task) ([]Task, error) {
 		}
 	}
 	if r.Frequency == 1 {
-		// Have to check the day before and the day after
+		// Have to check the day before and the day after for daily recurring tasks
 		yesterday := time.Unix(taskDate.Unix()-(24*60*60), 0)
 		tomorrow := time.Unix(taskDate.Unix()+(24*60*60), 0)
 		yt, err := NewTask(r.Name, r.Type, dateToInt(yesterday), r.StartTime, r.Duration)

@@ -212,7 +212,7 @@ func createTask(s *schedule.Schedule) error {
 			if err != nil {
 				return fmt.Errorf("bad date entered")
 			}
-			fmt.Print("Enter frequency (1 - 7): ")
+			fmt.Print("Enter frequency (1 or 7): ")
 			input.Scan()
 			frequency, err := strconv.Atoi(input.Text())
 			if err != nil {
