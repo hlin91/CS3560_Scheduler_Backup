@@ -77,7 +77,7 @@ func (t Task) Overlaps(op Task) bool {
 	// Difference in start date in hours
 	timeDelta := math.Abs(float64(time1.Unix()-time2.Unix())) / (60 * 60)
 	var earlierTask Task
-	if t.Before(op) {
+	if time1.Before(time2) {
 		earlierTask = t
 	} else {
 		earlierTask = op
@@ -182,7 +182,7 @@ func (r RecurringTask) GetSubtasks() ([]Task, error) {
 // GetOverlappingSubtasks returns the set of subtasks that overlap a given task
 func (r RecurringTask) GetOverlappingSubtasks(task Task) ([]Task, error) {
 	result := []Task{}
-	rStartDate, err := r.GetStartDate()
+	rStartDate, err := r.GetStartDateWithoutTime()
 	if err != nil {
 		return result, fmt.Errorf("GetOverlappingSubtasks: %v", err)
 	}
@@ -190,7 +190,7 @@ func (r RecurringTask) GetOverlappingSubtasks(task Task) ([]Task, error) {
 	if err != nil {
 		return result, fmt.Errorf("GetOverlappingSubtasks: %v", err)
 	}
-	taskDate, err := task.GetStartDate()
+	taskDate, err := task.GetStartDateWithoutTime()
 	if err != nil {
 		return result, fmt.Errorf("GetOverlappingSubtasks: %v", err)
 	}
@@ -198,7 +198,21 @@ func (r RecurringTask) GetOverlappingSubtasks(task Task) ([]Task, error) {
 		return result, nil
 	}
 	// Difference in start days in days
-	startDayDelta := int(math.Abs(float64(rStartDate.Unix()-taskDate.Unix())) / (60 * 60 * 24))
+	startDayDelta := int(taskDate.Unix()-rStartDate.Unix()) / (60 * 60 * 24)
+	if startDayDelta < 0 {
+		// Only have to check the very first recurring subtask
+		t, err := NewTask(r.Name, r.Type, r.Date, r.StartTime, r.Duration)
+		if err != nil {
+			return result, fmt.Errorf("GetOverlappingSubtasks: %v", err)
+		}
+		if t.Overlaps(task) {
+			result = append(result, t)
+		}
+		return result, nil
+	}
+	// Reintroduce start times into start dates
+	rStartDate, _ = r.GetStartDate()
+	taskDate, _ = task.GetStartDate()
 	if startDayDelta%r.Frequency == 0 {
 		// Get the subtask for this day
 		t, err := NewTask(r.Name, r.Type, task.Date, r.StartTime, r.Duration)
@@ -209,24 +223,27 @@ func (r RecurringTask) GetOverlappingSubtasks(task Task) ([]Task, error) {
 			result = append(result, t)
 		}
 	}
-	if r.Frequency == 1 || startDayDelta <= 1 {
-		// Have to check the day before and the day after for daily recurring tasks
-		yesterday := time.Unix(taskDate.Unix()-(24*60*60), 0)
-		tomorrow := time.Unix(taskDate.Unix()+(24*60*60), 0)
-		yt, err := NewTask(r.Name, r.Type, dateToInt(yesterday), r.StartTime, r.Duration)
-		if err != nil {
-			return result, fmt.Errorf("GetOverlappingSubtasks: error creating yesterday task: %v", err)
-		}
-		tt, err := NewTask(r.Name, r.Type, dateToInt(tomorrow), r.StartTime, r.Duration)
-		if err != nil {
-			return result, fmt.Errorf("GetOverlappingSubtasks: error creating tomorrow task: %v", err)
-		}
-		if yt.Overlaps(task) {
-			result = append(result, yt)
-		}
-		if tt.Overlaps(task) {
-			result = append(result, tt)
-		}
+	// Have to check the cycle before and the cycle after for potential overlaps
+	prevCycleDistance := startDayDelta % r.Frequency
+	if startDayDelta == 0 {
+		prevCycleDistance = r.Frequency
+	}
+	nextCycleDistance := r.Frequency - (startDayDelta % r.Frequency)
+	yesterday := time.Unix(taskDate.Unix()-((24*60*60)*int64(prevCycleDistance)), 0)
+	tomorrow := time.Unix(taskDate.Unix()+((24*60*60)*int64(nextCycleDistance)), 0)
+	yt, err := NewTask(r.Name, r.Type, dateToInt(yesterday), r.StartTime, r.Duration)
+	if err != nil {
+		return result, fmt.Errorf("GetOverlappingSubtasks: error creating yesterday task: %v", err)
+	}
+	tt, err := NewTask(r.Name, r.Type, dateToInt(tomorrow), r.StartTime, r.Duration)
+	if err != nil {
+		return result, fmt.Errorf("GetOverlappingSubtasks: error creating tomorrow task: %v", err)
+	}
+	if rStartDate.Before(yesterday) && yt.Overlaps(task) {
+		result = append(result, yt)
+	}
+	if tomorrow.Before(rEndDate) && tt.Overlaps(task) {
+		result = append(result, tt)
 	}
 	indexSubtasks(result) // Add index numbers to subtask names
 	return result, nil
