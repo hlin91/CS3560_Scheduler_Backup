@@ -209,7 +209,7 @@ func (r RecurringTask) GetOverlappingSubtasks(task Task) ([]Task, error) {
 			result = append(result, t)
 		}
 	}
-	if r.Frequency == 1 {
+	if r.Frequency == 1 || startDayDelta <= 1 {
 		// Have to check the day before and the day after for daily recurring tasks
 		yesterday := time.Unix(taskDate.Unix()-(24*60*60), 0)
 		tomorrow := time.Unix(taskDate.Unix()+(24*60*60), 0)
