@@ -17,6 +17,7 @@ func main() {
 	s := schedule.NewSchedule()
 	menu := makeMenu(&s)
 	input := bufio.NewScanner(os.Stdin)
+	menu.Clear()
 	displayHeader()
 	menu.Display()
 	for input.Scan() {
@@ -30,6 +31,7 @@ func main() {
 			menu.Display()
 			continue
 		}
+		menu.Clear()
 		err = menu.Process(option)
 		if err != nil {
 			fmt.Printf("Error: %v\n", err)
@@ -38,6 +40,7 @@ func main() {
 		}
 		fmt.Print("Press enter to continue...")
 		input.Scan()
+		menu.Clear()
 		displayHeader()
 		menu.Display()
 	}
