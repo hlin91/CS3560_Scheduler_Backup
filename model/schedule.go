@@ -3,7 +3,9 @@
 package model
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 	"time"
 )
 
@@ -133,7 +135,7 @@ func (s *Schedule) AddTransientTask(name, taskType string, date int, startTime, 
 	return nil
 }
 
-// AddTransientTask creates and adds a transient task to the schedule
+// AddSubtask creates and adds a recurring subtask to the schedule
 func (s *Schedule) AddSubtask(name, taskType string, date int, startTime, duration float32) error {
 	if len(name) == 0 {
 		return fmt.Errorf("AddSubtask: name cannot be empty")
@@ -335,7 +337,7 @@ func (s *Schedule) EditRecurringTask(taskName, newName, newType string, newDate 
 	return nil
 }
 
-// Project specifications are vagues so we'll consider all years
+// Project specifications are vagues so we'll consider all years in get by date range functions
 
 // GetTasksByMonth gets all tasks/subtasks within a specified month
 func (s Schedule) GetTasksByMonth(month int) ([]Task, error) {
@@ -398,11 +400,176 @@ func (s Schedule) GetTasksByWeek(month, day int) ([]Task, error) {
 	return result, nil
 }
 
-// TODO: Implement file I/O
-// Tasks should be added to the schedule in this order
+/// Tasks should be added to the schedule in this order
 // 1. Recurring tasks
 // 2. Anti tasks
-// 3. Transient tasks
+// 3. Transient tasks/Subtasks
 // This will prevent scheduling conflicts due to insertion order
+
+// LoadFile loads the contents of the json file at the specified path into the schedule
+// We expect the json file to contain a single list of tasks
+func (s *Schedule) LoadFile(path string) error {
+	transientTaskBuff := []map[string]interface{}{} // Buffer to hold transient tasks read from file
+	antiTaskBuff := []map[string]interface{}{}      // Buffer to hold anti tasks read from file
+	recurTaskBuff := []map[string]interface{}{}     // Buffer to hold recurring tasks read from file
+	subTaskBuff := []map[string]interface{}{}       // Buffer to hold subtasks read from file
+	content, err := os.ReadFile(path)               // Load contents of file as a byte slice
+	if err != nil {
+		return fmt.Errorf("LoadFile: error reading file %q: %v", path, err)
+	}
+	var tasksRead []interface{}
+	err = json.Unmarshal(content, &tasksRead)
+	if err != nil {
+		return fmt.Errorf("LoadFile: error unmarshaling json: %v", err)
+	}
+	for _, i := range tasksRead {
+		// Because the json format is pre-determined, we have to discriminate based on number of keys and type field
+		t := i.(map[string]interface{})
+		if len(t) != NUM_TASK_KEYS && len(t) != NUM_RECUR_KEYS {
+			// Wrong number of keys given (ie. bad data)
+			return fmt.Errorf("LoadFile: error parsing tasks: wrong number of keys")
+		}
+		if len(t) == NUM_TASK_KEYS {
+			// Either a recurring subtask, an anti task, or a transient task
+			if _, ok := t[TYPE_KEY]; !ok {
+				return fmt.Errorf("LoadFile: error parsing tasks: missing %q field", TYPE_KEY)
+			}
+			taskType, ok := t[TYPE_KEY].(string)
+			if !ok {
+				return fmt.Errorf("LoadFile: error parsing tasks: could not assert type field to string")
+			}
+			if isTransientType(taskType) {
+				transientTaskBuff = append(transientTaskBuff, t)
+				continue
+			}
+			if isAntiType(taskType) {
+				antiTaskBuff = append(antiTaskBuff, t)
+				continue
+			}
+			if isRecurringType(taskType) {
+				subTaskBuff = append(subTaskBuff, t)
+				continue
+			}
+			return fmt.Errorf("LoadFile: error parsing tasks: bad type found: %q", taskType)
+		}
+		if len(t) == NUM_RECUR_KEYS {
+			// A potential recurring task
+			recurTaskBuff = append(recurTaskBuff, t)
+			continue
+		}
+		return fmt.Errorf("LoadFile: error parsing tasks: bad number of keys found")
+	}
+	// Add the recurring tasks, then the anti tasks, then the transient and subtasks
+	for _, m := range recurTaskBuff {
+		if !recurKeysPresent(m) {
+			return fmt.Errorf("LoadFile: error loading tasks: task values missing")
+		}
+		name, taskType, date, startTime, duration, endDate, frequency, err := mapToRecurInfo(m)
+		if err != nil {
+			return fmt.Errorf("LoadFile: error loading tasks: %v", err)
+		}
+		err = s.AddRecurringTask(name, taskType, date, startTime, duration, endDate, frequency)
+		if err != nil {
+			return fmt.Errorf("LoadFile: error loading tasks: %v", err)
+		}
+	}
+	for _, m := range antiTaskBuff {
+		if !taskKeysPresent(m) {
+			return fmt.Errorf("LoadFile: error loading tasks: task values missing")
+		}
+		name, taskType, date, startTime, duration, err := mapToTaskInfo(m)
+		if err != nil {
+			return fmt.Errorf("LoadFile: error loading tasks: %v", err)
+		}
+		err = s.AddAntiTask(name, taskType, date, startTime, duration)
+		if err != nil {
+			return fmt.Errorf("LoadFile: error loading tasks: %v", err)
+		}
+	}
+	for _, m := range transientTaskBuff {
+		if !taskKeysPresent(m) {
+			return fmt.Errorf("LoadFile: error loading tasks: task values missing")
+		}
+		name, taskType, date, startTime, duration, err := mapToTaskInfo(m)
+		if err != nil {
+			return fmt.Errorf("LoadFile: error loading tasks: %v", err)
+		}
+		err = s.AddTransientTask(name, taskType, date, startTime, duration)
+		if err != nil {
+			return fmt.Errorf("LoadFile: error loading tasks: %v", err)
+		}
+	}
+	for _, m := range subTaskBuff {
+		if !taskKeysPresent(m) {
+			return fmt.Errorf("LoadFile: error loading tasks: task values missing")
+		}
+		name, taskType, date, startTime, duration, err := mapToTaskInfo(m)
+		if err != nil {
+			return fmt.Errorf("LoadFile: error loading tasks: %v", err)
+		}
+		err = s.AddSubtask(name, taskType, date, startTime, duration)
+		if err != nil {
+			return fmt.Errorf("LoadFile: error loading tasks: %v", err)
+		}
+	}
+	return nil
+}
+
+// WriteTasks writes all tasks in the schedule to a specified file in JSON format
+func (s Schedule) WriteTasks(path string) error {
+	allTasks := []interface{}{}
+	// Compile all the tasks
+	for _, t := range s.TransientTasks {
+		allTasks = append(allTasks, &t)
+	}
+	for _, t := range s.AntiTasks {
+		allTasks = append(allTasks, &t)
+	}
+	for _, t := range s.RecurringTasks {
+		allTasks = append(allTasks, &t)
+	}
+	outFile, err := os.Create(path)
+	if err != nil {
+		return fmt.Errorf("WriteTasks: error creating file: %v", err)
+	}
+	content, err := json.MarshalIndent(allTasks, "", "\t")
+	if err != nil {
+		return fmt.Errorf("WriteTasks: error marshaling json: %v", err)
+	}
+	_, err = outFile.Write(content)
+	if err != nil {
+		return fmt.Errorf("WriteTasks: error writing to file: %v", err)
+	}
+	err = outFile.Close()
+	if err != nil {
+		return fmt.Errorf("WriteTasks: error closing file: %v", err)
+	}
+	return nil
+}
+
+// WriteTaskList writes a list of tasks into a specified file in JSON format
+func (s Schedule) WriteTaskList(path string, tasks []Task) error {
+	l := []interface{}{}
+	for _, t := range tasks {
+		l = append(l, &t)
+	}
+	outFile, err := os.Create(path)
+	if err != nil {
+		return fmt.Errorf("WriteTaskList: error creating file: %v", err)
+	}
+	content, err := json.MarshalIndent(l, "", "\t")
+	if err != nil {
+		return fmt.Errorf("WriteTaskList: error marshaling json: %v", err)
+	}
+	_, err = outFile.Write(content)
+	if err != nil {
+		return fmt.Errorf("WriteTaskList: error writing to file: %v", err)
+	}
+	err = outFile.Close()
+	if err != nil {
+		return fmt.Errorf("WriteTaskList: error closing file: %v", err)
+	}
+	return nil
+}
 
 //!--

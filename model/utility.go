@@ -14,7 +14,7 @@ const (
 	SHOPPING    = "Shopping"
 	APPOINTMENT = "Appointment"
 	// Anti types
-	CANCEL = "Cancel"
+	CANCEL = "Cancellation"
 	// Recurring Types
 	CLASS    = "Class"
 	STUDY    = "Study"
@@ -22,6 +22,17 @@ const (
 	EXERCISE = "Exercise"
 	WORK     = "Work"
 	MEAL     = "Meal"
+	// Number of keys in transient/anti tasks
+	NUM_TASK_KEYS  = 5
+	NUM_RECUR_KEYS = 7
+	// Key names for JSON marshaling
+	NAME_KEY       = "Name"
+	TYPE_KEY       = "Type"
+	DATE_KEY       = "StartDate"
+	START_TIME_KEY = "StartTime"
+	DURATION_KEY   = "Duration"
+	END_DATE_KEY   = "EndDate"
+	FREQUENCY_KEY  = "Frequency"
 )
 
 // isTransientType checks if the type is a valid transient type
@@ -79,6 +90,82 @@ func indexSubtasks(tasks []Task) {
 	for i, t := range tasks {
 		t.Name = fmt.Sprintf("%s (%d)", t.Name, i)
 	}
+}
+
+// taskKeysPresent checks if the necessary keys for a task are present in a generic string map
+func taskKeysPresent(m map[string]interface{}) bool {
+	if _, ok := m[NAME_KEY]; !ok {
+		return false
+	}
+	if _, ok := m[TYPE_KEY]; !ok {
+		return false
+	}
+	if _, ok := m[DATE_KEY]; !ok {
+		return false
+	}
+	if _, ok := m[START_TIME_KEY]; !ok {
+		return false
+	}
+	if _, ok := m[DURATION_KEY]; !ok {
+		return false
+	}
+	return true
+}
+
+// recurKeysPresent checks if the necessary keys for a recurring task are present in a generic map
+func recurKeysPresent(m map[string]interface{}) bool {
+	if !taskKeysPresent(m) {
+		return false
+	}
+	if _, ok := m[END_DATE_KEY]; !ok {
+		return false
+	}
+	if _, ok := m[FREQUENCY_KEY]; !ok {
+		return false
+	}
+	return true
+}
+
+// mapToTaskInfo extracts task information from a generic map
+func mapToTaskInfo(m map[string]interface{}) (string, string, int, float32, float32, error) {
+	name, ok := m[NAME_KEY].(string)
+	if !ok {
+		return "", "", 0, 0, 0, fmt.Errorf("bad name value")
+	}
+	taskType, ok := m[TYPE_KEY].(string)
+	if !ok {
+		return "", "", 0, 0, 0, fmt.Errorf("bad type value")
+	}
+	date, ok := m[DATE_KEY].(int)
+	if !ok {
+		return "", "", 0, 0, 0, fmt.Errorf("bad date value")
+	}
+	startTime, ok := m[START_TIME_KEY].(float64)
+	if !ok {
+		return "", "", 0, 0, 0, fmt.Errorf("bad start time value")
+	}
+	duration, ok := m[DURATION_KEY].(float64)
+	if !ok {
+		return "", "", 0, 0, 0, fmt.Errorf("bad duration value")
+	}
+	return name, taskType, date, float32(startTime), float32(duration), nil
+}
+
+// mapToRecurInfo extracts recurring task information from a generic map
+func mapToRecurInfo(m map[string]interface{}) (string, string, int, float32, float32, int, int, error) {
+	name, taskType, date, startTime, duration, err := mapToTaskInfo(m)
+	if err != nil {
+		return "", "", 0, 0, 0, 0, 0, err
+	}
+	endDate, ok := m[END_DATE_KEY].(int)
+	if !ok {
+		return "", "", 0, 0, 0, 0, 0, fmt.Errorf("bad end date value")
+	}
+	frequency, ok := m[FREQUENCY_KEY].(int)
+	if !ok {
+		return "", "", 0, 0, 0, 0, 0, fmt.Errorf("bad frequency value")
+	}
+	return name, taskType, date, startTime, duration, endDate, frequency, nil
 }
 
 //!--
