@@ -77,7 +77,7 @@ func datesOverlap(date1 time.Time, duration1 int, date2 time.Time, duration2 int
 // indexNames adds index numbers to the names of a list of subtasks
 func indexSubtasks(tasks []Task) {
 	for i, t := range tasks {
-		t.Name = fmt.Sprintf("%s %d", t.Name, i)
+		t.Name = fmt.Sprintf("%s (%d)", t.Name, i)
 	}
 }
 
