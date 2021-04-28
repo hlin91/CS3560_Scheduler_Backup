@@ -1,4 +1,5 @@
 // Package model provides functionality for creating and managing a schedule of tasks
+// utility.go provides various helpful functions private to the package
 package model
 
 import (

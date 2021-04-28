@@ -1,12 +1,14 @@
 // Package controller provides functions to edit the schedule or view (ie. command line)
+// options.go provides the options the user can choose from for interacting with the schedule
 package controller
 
 import (
 	"bufio"
 	"fmt"
-	"github.com/hlin91/CS3560_Scheduler_Backup/model"
 	"os"
 	"strconv"
+
+	"github.com/hlin91/CS3560_Scheduler_Backup/model"
 )
 
 const (
@@ -187,3 +189,5 @@ func deleteTask(s *model.Schedule) error {
 }
 
 // TODO: Make file IO menu options
+
+//!--

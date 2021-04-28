@@ -1,12 +1,15 @@
+// Package controller provides functions to edit the schedule or view (ie. command line)
+// utility.go provides various utility functions private to the package
 package controller
 
 import (
 	"bufio"
 	"fmt"
-	"github.com/hlin91/CS3560_Scheduler_Backup/model"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/hlin91/CS3560_Scheduler_Backup/model"
 )
 
 func displayHeader() {
@@ -149,3 +152,5 @@ func displayRecurringTypes() {
 	fmt.Println(model.WORK)
 	fmt.Println(model.MEAL)
 }
+
+//!--

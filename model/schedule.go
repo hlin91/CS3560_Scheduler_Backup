@@ -1,4 +1,5 @@
 // Package model provides functionality for creating and managing a schedule of tasks
+// schedule.go provides an implementation for a schedule to store and manage tracks
 package model
 
 import (
