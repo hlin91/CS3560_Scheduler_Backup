@@ -19,7 +19,7 @@ type Menuer interface {
 
 // Menu is an object that manages a list of menu options
 type Menu struct {
-	Options []Menuer
+	options []Menuer
 }
 
 // Run the menu until the user passes in the escape string
@@ -61,7 +61,7 @@ func NewMenu(options []Menuer) Menu {
 
 // Display prints all the options in the menu and an input prompt
 func (m Menu) Display() {
-	for i, o := range m.Options {
+	for i, o := range m.options {
 		fmt.Printf("%d. %s\n", i+1, o.Title())
 	}
 	fmt.Print("\nEnter an option: ")
@@ -69,10 +69,10 @@ func (m Menu) Display() {
 
 // Process calls the appropriate menu option for the given input
 func (m Menu) Process(input int) error {
-	if input < 1 || input > len(m.Options) {
+	if input < 1 || input > len(m.options) {
 		return fmt.Errorf("input out of range")
 	}
-	return m.Options[input-1].Exec()
+	return m.options[input-1].Exec()
 }
 
 // Clear clears the screen
