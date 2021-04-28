@@ -47,38 +47,6 @@ func MakeMenu(s *model.Schedule) Menu {
 	return NewMenu(m)
 }
 
-// Run the menu until the user passes in the escape string
-func (m *Menu) Run() {
-	input := bufio.NewScanner(os.Stdin)
-	m.Clear()
-	displayHeader()
-	m.Display()
-	for input.Scan() {
-		if input.Text() == ESCAPE {
-			return
-		}
-		option, err := strconv.Atoi(input.Text())
-		if err != nil {
-			fmt.Println("Error: bad option")
-			displayHeader()
-			m.Display()
-			continue
-		}
-		m.Clear()
-		err = m.Process(option)
-		if err != nil {
-			fmt.Printf("Error: %v\n", err)
-		} else {
-			fmt.Println("Success!")
-		}
-		fmt.Print("Press enter to continue...")
-		input.Scan()
-		m.Clear()
-		displayHeader()
-		m.Display()
-	}
-}
-
 func createTask(s *model.Schedule) error {
 	input := bufio.NewScanner(os.Stdin)
 	valid := false

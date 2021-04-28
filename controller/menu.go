@@ -2,11 +2,13 @@
 package controller
 
 import (
+	"bufio"
 	"fmt"
 	"github.com/hlin91/CS3560_Scheduler_Backup/model"
 	"os"
 	"os/exec"
 	"runtime"
+	"strconv"
 )
 
 // Menuer is the minimum interface required for a menu option
@@ -18,6 +20,38 @@ type Menuer interface {
 // Menu is an object that manages a list of menu options
 type Menu struct {
 	Options []Menuer
+}
+
+// Run the menu until the user passes in the escape string
+func (m *Menu) Run() {
+	input := bufio.NewScanner(os.Stdin)
+	m.Clear()
+	displayHeader()
+	m.Display()
+	for input.Scan() {
+		if input.Text() == ESCAPE {
+			return
+		}
+		option, err := strconv.Atoi(input.Text())
+		if err != nil {
+			fmt.Println("Error: bad option")
+			displayHeader()
+			m.Display()
+			continue
+		}
+		m.Clear()
+		err = m.Process(option)
+		if err != nil {
+			fmt.Printf("Error: %v\n", err)
+		} else {
+			fmt.Println("Success!")
+		}
+		fmt.Print("Press enter to continue...")
+		input.Scan()
+		m.Clear()
+		displayHeader()
+		m.Display()
+	}
 }
 
 // NewMenu creates and returns a new menu
