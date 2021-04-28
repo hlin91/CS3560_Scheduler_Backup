@@ -113,6 +113,9 @@ func (s Schedule) hasDeleteConflict(task Task) bool {
 
 // AddTransientTask creates and adds a transient task to the schedule
 func (s *Schedule) AddTransientTask(name, taskType string, date int, startTime, duration float32) error {
+	if len(name) == 0 {
+		return fmt.Errorf("AddTransientTask: name cannot be empty")
+	}
 	if s.hasNameConflict(name) {
 		return fmt.Errorf("AddTransientTask: task name already exists")
 	}
@@ -132,6 +135,9 @@ func (s *Schedule) AddTransientTask(name, taskType string, date int, startTime, 
 
 // AddTransientTask creates and adds a transient task to the schedule
 func (s *Schedule) AddSubtask(name, taskType string, date int, startTime, duration float32) error {
+	if len(name) == 0 {
+		return fmt.Errorf("AddSubtask: name cannot be empty")
+	}
 	if s.hasNameConflict(name) {
 		return fmt.Errorf("AddSubtask: task name already exists")
 	}
@@ -152,6 +158,9 @@ func (s *Schedule) AddSubtask(name, taskType string, date int, startTime, durati
 // AddAntiTask creates and adds an anti task to the schedule
 func (s *Schedule) AddAntiTask(name, taskType string, date int, startTime, duration float32) error {
 	var cancelledExists bool
+	if len(name) == 0 {
+		return fmt.Errorf("AddAntiTask: name cannot be empty")
+	}
 	if s.hasNameConflict(name) {
 		return fmt.Errorf("AddAntiTask: task name already exists")
 	}
@@ -177,6 +186,9 @@ func (s *Schedule) AddAntiTask(name, taskType string, date int, startTime, durat
 
 // AddRecurringTask creates and adds a recurring task to the schedule
 func (s *Schedule) AddRecurringTask(name, taskType string, date int, startTime, duration float32, endDate, frequency int) error {
+	if len(name) == 0 {
+		return fmt.Errorf("AddRecurringTask: name cannot be empty")
+	}
 	if s.hasNameConflict(name) {
 		return fmt.Errorf("AddRecurringTask: task name already exists")
 	}
@@ -221,7 +233,7 @@ func (s *Schedule) DeleteTask(name string) error {
 }
 
 // EditTransienTask edits the details of an existing transient task in the schedule
-func (s *Schedule) EditTransientTask(taskName, newName string, newDate int, newStartTime, newDuration float32) error {
+func (s *Schedule) EditTransientTask(taskName, newName, newType string, newDate int, newStartTime, newDuration float32) error {
 	t, ok := s.TransientTasks[taskName]
 	if !ok {
 		return fmt.Errorf("EditTransientTask: task name does not exist in schedule")
@@ -229,12 +241,12 @@ func (s *Schedule) EditTransientTask(taskName, newName string, newDate int, newS
 	if newName != taskName && s.hasNameConflict(newName) {
 		return fmt.Errorf("EditTransientTask: new name already exists in schedule")
 	}
-	newTask, err := NewTask(newName, t.Type, newDate, newStartTime, newDuration)
+	newTask, err := NewTask(newName, newType, newDate, newStartTime, newDuration)
 	if err != nil {
 		return fmt.Errorf("EditTransientTask: %v", err)
 	}
 	if t.Date == newDate && t.StartTime == newStartTime && t.Duration == newDuration {
-		// Only the name changed
+		// Only the name changed and type changed
 		delete(s.TransientTasks, taskName)
 		s.TransientTasks[newName] = newTask
 		return nil
@@ -288,7 +300,7 @@ func (s *Schedule) EditAntiTask(taskName, newName string, newDate int, newStartT
 }
 
 // EditRecurringTask edits the details of an existing recurring task in the schedule
-func (s *Schedule) EditRecurringTask(taskName, newName string, newDate int, newStartTime, newDuration float32, newEndDate, newFrequency int) error {
+func (s *Schedule) EditRecurringTask(taskName, newName, newType string, newDate int, newStartTime, newDuration float32, newEndDate, newFrequency int) error {
 	r, ok := s.RecurringTasks[taskName]
 	if !ok {
 		return fmt.Errorf("EditRecurringTask: task name does not exist in schedule")
@@ -296,12 +308,12 @@ func (s *Schedule) EditRecurringTask(taskName, newName string, newDate int, newS
 	if newName != taskName && s.hasNameConflict(newName) {
 		return fmt.Errorf("EditRecurringTask: new name already exists in schedule")
 	}
-	newTask, err := NewRecurringTask(newName, r.Type, newDate, newStartTime, newDuration, newEndDate, newFrequency)
+	newTask, err := NewRecurringTask(newName, newType, newDate, newStartTime, newDuration, newEndDate, newFrequency)
 	if err != nil {
 		return fmt.Errorf("EditRecurringTask: %v", err)
 	}
 	if r.Date == newDate && r.StartTime == newStartTime && r.Duration == newDuration && r.EndDate == newEndDate && r.Frequency == newFrequency {
-		// Only name changed
+		// Only name changed and type changed
 		delete(s.RecurringTasks, taskName)
 		s.RecurringTasks[newName] = newTask
 		return nil

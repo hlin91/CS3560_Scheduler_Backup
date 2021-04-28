@@ -34,11 +34,12 @@ func MakeMenu(s *model.Schedule) Menu {
 	options := []ScheduleMenuItem{}
 	// Add create task option
 	options = append(options, NewScheduleMenuItem("Create a task", s, createTask))
+	options = append(options, NewScheduleMenuItem("Delete a task", s, deleteTask))
+	options = append(options, NewScheduleMenuItem("Edit a task", s, editTask))
 	options = append(options, NewScheduleMenuItem("View a task", s, viewTask))
 	options = append(options, NewScheduleMenuItem("View by month", s, viewTaskByMonth))
 	options = append(options, NewScheduleMenuItem("View by week", s, viewTaskByWeek))
 	options = append(options, NewScheduleMenuItem("View by day", s, viewTaskByDay))
-	options = append(options, NewScheduleMenuItem("Delete a task", s, deleteTask))
 	// TODO: Add edit task option
 	// TODO: Add file IO options
 	m := []Menuer{}
@@ -186,6 +187,41 @@ func deleteTask(s *model.Schedule) error {
 	fmt.Print("Enter task name: ")
 	input.Scan()
 	return s.DeleteTask(input.Text())
+}
+
+func editTask(s *model.Schedule) error {
+	input := bufio.NewScanner(os.Stdin)
+	fmt.Print("Enter the name of the task to edit: ")
+	input.Scan()
+	taskName := input.Text()
+	if _, ok := s.TransientTasks[taskName]; ok {
+		// Edit a transient task
+		newName, newType, newDate, newStartTime, newDuration, err := requestTaskInfo()
+		if err != nil {
+			return err
+		}
+		err = s.EditTransientTask(taskName, newName, newType, newDate, newStartTime, newDuration)
+		return err
+	}
+	if _, ok := s.AntiTasks[taskName]; ok {
+		// Edit an anti task
+		newName, newDate, newStartTime, newDuration, err := requestAntiInfo()
+		if err != nil {
+			return err
+		}
+		err = s.EditAntiTask(taskName, newName, newDate, newStartTime, newDuration)
+		return err
+	}
+	if _, ok := s.RecurringTasks[taskName]; ok {
+		// Edit a recurring task
+		newName, newType, newDate, newStartTime, newDuration, newEndDate, newFrequency, err := requestRecurringInfo()
+		if err != nil {
+			return err
+		}
+		err = s.EditRecurringTask(taskName, newName, newType, newDate, newStartTime, newDuration, newEndDate, newFrequency)
+		return err
+	}
+	return fmt.Errorf("could not find task with name %q", taskName)
 }
 
 // TODO: Make file IO menu options
