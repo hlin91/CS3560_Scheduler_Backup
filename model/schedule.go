@@ -1,5 +1,5 @@
-// Package schedule provides functionality for creating and managing a schedule of tasks
-package schedule
+// Package model provides functionality for creating and managing a schedule of tasks
+package model
 
 import (
 	"fmt"
@@ -12,8 +12,8 @@ type Schedule struct {
 	RecurringTasks map[string]RecurringTask
 }
 
-func NewSchedule() Schedule {
-	return Schedule{
+func NewSchedule() *Schedule {
+	return &Schedule{
 		TransientTasks: map[string]Task{},
 		AntiTasks:      map[string]AntiTask{},
 		RecurringTasks: map[string]RecurringTask{},

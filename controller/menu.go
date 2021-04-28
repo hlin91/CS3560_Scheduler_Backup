@@ -1,8 +1,9 @@
 // Package schedule provides functionality for creating and managing a schedule of tasks
-package schedule
+package controller
 
 import (
 	"fmt"
+	"github.com/hlin91/CS3560_Scheduler_Backup/model"
 	"os"
 	"os/exec"
 	"runtime"
@@ -59,8 +60,8 @@ func (m Menu) Clear() {
 // ScheduleMenuItem defines a menu option that manages the schedule
 type ScheduleMenuItem struct {
 	title    string
-	schedule *Schedule
-	hook     func(*Schedule) error
+	schedule *model.Schedule
+	hook     func(*model.Schedule) error
 }
 
 // Title returns the title of the menu item
@@ -74,7 +75,7 @@ func (s *ScheduleMenuItem) Exec() error {
 }
 
 // NewScheduleMenuItem creates and returns a new schedule menu item
-func NewScheduleMenuItem(title string, schedule *Schedule, hook func(*Schedule) error) ScheduleMenuItem {
+func NewScheduleMenuItem(title string, schedule *model.Schedule, hook func(*model.Schedule) error) ScheduleMenuItem {
 	return ScheduleMenuItem{
 		title:    title,
 		schedule: schedule,

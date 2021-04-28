@@ -1,0 +1,221 @@
+// Package controller provides functions to edit the schedule or view (ie. command line)
+package controller
+
+import (
+	"bufio"
+	"fmt"
+	"github.com/hlin91/CS3560_Scheduler_Backup/model"
+	"os"
+	"strconv"
+)
+
+const (
+	ESCAPE = "quit"
+)
+
+// Make the menu and populate with options to interact with schedule
+func MakeMenu(s *model.Schedule) Menu {
+	/**********************************************
+		 * Options are...
+		 * Create a task
+		 * View a task
+		 * View by month
+		 * View by week
+		 * View by day
+		 * Delete a task
+		 * Read schedule from file
+		 * Write schedule to file
+		 * Write by day
+		 * Write by week
+		 * Write by month
+	     **********************************************/
+	options := []ScheduleMenuItem{}
+	// Add create task option
+	options = append(options, NewScheduleMenuItem("Create a task", s, createTask))
+	options = append(options, NewScheduleMenuItem("View a task", s, viewTask))
+	options = append(options, NewScheduleMenuItem("View by month", s, viewTaskByMonth))
+	options = append(options, NewScheduleMenuItem("View by week", s, viewTaskByWeek))
+	options = append(options, NewScheduleMenuItem("View by day", s, viewTaskByDay))
+	options = append(options, NewScheduleMenuItem("Delete a task", s, deleteTask))
+	// TODO: Add edit task option
+	// TODO: Add file IO options
+	m := []Menuer{}
+	for _, o := range options {
+		temp := o
+		m = append(m, Menuer(&temp))
+	}
+	return NewMenu(m)
+}
+
+// Run the menu until the user passes in the escape string
+func (m *Menu) Run() {
+	input := bufio.NewScanner(os.Stdin)
+	m.Clear()
+	displayHeader()
+	m.Display()
+	for input.Scan() {
+		if input.Text() == ESCAPE {
+			return
+		}
+		option, err := strconv.Atoi(input.Text())
+		if err != nil {
+			fmt.Println("Error: bad option")
+			displayHeader()
+			m.Display()
+			continue
+		}
+		m.Clear()
+		err = m.Process(option)
+		if err != nil {
+			fmt.Printf("Error: %v\n", err)
+		} else {
+			fmt.Println("Success!")
+		}
+		fmt.Print("Press enter to continue...")
+		input.Scan()
+		m.Clear()
+		displayHeader()
+		m.Display()
+	}
+}
+
+func createTask(s *model.Schedule) error {
+	input := bufio.NewScanner(os.Stdin)
+	valid := false
+	fmt.Println("Select the type of task to add")
+	fmt.Println("1. Transient task")
+	fmt.Println("2. Anti task")
+	fmt.Println("3. Recurring task")
+	fmt.Print("Enter an option: ")
+	for !valid {
+		switch input.Scan(); input.Text() {
+		case "1":
+			valid = true
+			name, taskType, date, startTime, duration, err := requestTaskInfo()
+			if err != nil {
+				return err
+			}
+			return s.AddTransientTask(name, taskType, date, startTime, duration)
+		case "2":
+			valid = true
+			name, date, startTime, duration, err := requestAntiInfo()
+			if err != nil {
+				return err
+			}
+			return s.AddAntiTask(name, model.CANCEL, date, float32(startTime), float32(duration))
+		case "3":
+			valid = true
+			name, taskType, date, startTime, duration, endDate, frequency, err := requestRecurringInfo()
+			if err != nil {
+				return err
+			}
+			return s.AddRecurringTask(name, taskType, date, startTime, duration, endDate, frequency)
+		default:
+			fmt.Print("Invalid option. Try again: ")
+		}
+	}
+	return nil
+}
+
+func viewTask(s *model.Schedule) error {
+	input := bufio.NewScanner(os.Stdin)
+	fmt.Print("Enter a task name: ")
+	input.Scan()
+	if t, ok := s.TransientTasks[input.Text()]; ok {
+		fmt.Println(t)
+		return nil
+	}
+	if t, ok := s.RecurringTasks[input.Text()]; ok {
+		fmt.Println(t)
+		return nil
+	}
+	if t, ok := s.AntiTasks[input.Text()]; ok {
+		fmt.Println(t)
+		return nil
+	}
+	return fmt.Errorf("task name does not exist in schedule")
+}
+
+func viewTaskByMonth(s *model.Schedule) error {
+	input := bufio.NewScanner(os.Stdin)
+	fmt.Print("Enter a month (1-12): ")
+	input.Scan()
+	month, err := strconv.Atoi(input.Text())
+	if err != nil {
+		return fmt.Errorf("bad month entered")
+	}
+	tasks, err := s.GetTasksByMonth(month)
+	if err != nil {
+		return err
+	}
+	for i, t := range tasks {
+		fmt.Println(t)
+		if i < len(tasks)-1 {
+			fmt.Println("-----------------------------------------")
+		}
+	}
+	return nil
+}
+
+func viewTaskByWeek(s *model.Schedule) error {
+	input := bufio.NewScanner(os.Stdin)
+	fmt.Print("Enter a month (1-12): ")
+	input.Scan()
+	month, err := strconv.Atoi(input.Text())
+	if err != nil {
+		return fmt.Errorf("bad month entered")
+	}
+	fmt.Print("Enter a day (1-31): ")
+	input.Scan()
+	day, err := strconv.Atoi(input.Text())
+	if err != nil {
+		return fmt.Errorf("bad day entered")
+	}
+	tasks, err := s.GetTasksByWeek(month, day)
+	if err != nil {
+		return err
+	}
+	for i, t := range tasks {
+		fmt.Println(t)
+		if i < len(tasks)-1 {
+			fmt.Println("-----------------------------------------")
+		}
+	}
+	return nil
+}
+
+func viewTaskByDay(s *model.Schedule) error {
+	input := bufio.NewScanner(os.Stdin)
+	fmt.Print("Enter a month (1-12): ")
+	input.Scan()
+	month, err := strconv.Atoi(input.Text())
+	if err != nil {
+		return fmt.Errorf("bad month entered")
+	}
+	fmt.Print("Enter a day (1-31): ")
+	input.Scan()
+	day, err := strconv.Atoi(input.Text())
+	if err != nil {
+		return fmt.Errorf("bad day entered")
+	}
+	tasks, err := s.GetTasksByDay(month, day)
+	if err != nil {
+		return err
+	}
+	for i, t := range tasks {
+		fmt.Println(t)
+		if i < len(tasks)-1 {
+			fmt.Println("-----------------------------------------")
+		}
+	}
+	return nil
+}
+
+func deleteTask(s *model.Schedule) error {
+	input := bufio.NewScanner(os.Stdin)
+	fmt.Print("Enter task name: ")
+	input.Scan()
+	return s.DeleteTask(input.Text())
+}
+
+// TODO: Make file IO menu options

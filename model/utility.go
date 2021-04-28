@@ -1,5 +1,5 @@
-// Package schedule provides functionality for creating and managing a schedule of tasks
-package schedule
+// Package model provides functionality for creating and managing a schedule of tasks
+package model
 
 import (
 	"fmt"
