@@ -3,10 +3,14 @@ package controller
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
-	"github.com/hlin91/CS3560_Scheduler_Backup/model"
+	"io/ioutil"
 	"os"
 	"strconv"
+	"strings"
+
+	"github.com/hlin91/CS3560_Scheduler_Backup/model"
 )
 
 const (
@@ -37,8 +41,9 @@ func MakeMenu(s *model.Schedule) Menu {
 	options = append(options, NewScheduleMenuItem("View by week", s, viewTaskByWeek))
 	options = append(options, NewScheduleMenuItem("View by day", s, viewTaskByDay))
 	options = append(options, NewScheduleMenuItem("Delete a task", s, deleteTask))
+	options = append(options, NewScheduleMenuItem("Import Schedule", s, importJSON))
+	options = append(options, NewScheduleMenuItem("Export Schedule", s, exportJSON))
 	// TODO: Add edit task option
-	// TODO: Add file IO options
 	m := []Menuer{}
 	for _, o := range options {
 		temp := o
@@ -187,3 +192,36 @@ func deleteTask(s *model.Schedule) error {
 }
 
 // TODO: Make file IO menu options
+func importJSON(s *model.Schedule) error {
+	fmt.Println("Importing Task")
+	input := bufio.NewScanner(os.Stdin)
+	fmt.Println("Enter the file path: ")
+	input.Scan()
+
+	if !strings.HasSuffix(input.Text(), ".json") {
+		return fmt.Errorf("Your file must be a JSON.")
+	}
+
+	file, err := os.Open(input.Text())
+	if err != nil {
+		return fmt.Errorf("Failed to read input.")
+	}
+
+	byteValue, _ := ioutil.ReadAll(file)
+
+	var tasks []map[string]interface{}
+
+	json.Unmarshal([]byte(byteValue), &tasks)
+
+	for _, task := range tasks {
+		taskType := task["Type"]
+		fmt.Println(taskType)
+	}
+
+	return nil
+}
+
+func exportJSON(s *model.Schedule) error {
+
+	return nil
+}
