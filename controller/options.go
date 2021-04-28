@@ -40,8 +40,11 @@ func MakeMenu(s *model.Schedule) Menu {
 	options = append(options, NewScheduleMenuItem("View by month", s, viewTaskByMonth))
 	options = append(options, NewScheduleMenuItem("View by week", s, viewTaskByWeek))
 	options = append(options, NewScheduleMenuItem("View by day", s, viewTaskByDay))
-	// TODO: Add edit task option
-	// TODO: Add file IO options
+	options = append(options, NewScheduleMenuItem("Load from file", s, loadFile))
+	options = append(options, NewScheduleMenuItem("Write tasks to file", s, writeTasks))
+	options = append(options, NewScheduleMenuItem("Write tasks by month", s, writeTasksByMonth))
+	options = append(options, NewScheduleMenuItem("Write tasks by week", s, writeTasksByWeek))
+	options = append(options, NewScheduleMenuItem("Write tasks by day", s, writeTasksByDay))
 	m := []Menuer{}
 	for _, o := range options {
 		temp := o
@@ -224,6 +227,86 @@ func editTask(s *model.Schedule) error {
 	return fmt.Errorf("could not find task with name %q", taskName)
 }
 
-// TODO: Make file IO menu options
+func loadFile(s *model.Schedule) error {
+	input := bufio.NewScanner(os.Stdin)
+	fmt.Print("Enter the path of the file to load: ")
+	input.Scan()
+	filePath := input.Text()
+	return s.LoadFile(filePath)
+}
+
+func writeTasks(s *model.Schedule) error {
+	input := bufio.NewScanner(os.Stdin)
+	fmt.Print("Enter the path of the file to write to: ")
+	input.Scan()
+	filePath := input.Text()
+	return s.WriteTasks(filePath)
+}
+
+func writeTasksByMonth(s *model.Schedule) error {
+	input := bufio.NewScanner(os.Stdin)
+	fmt.Print("Enter the path of the file to write to: ")
+	input.Scan()
+	filePath := input.Text()
+	fmt.Print("Enter a month (1-12): ")
+	input.Scan()
+	month, err := strconv.Atoi(input.Text())
+	if err != nil {
+		return fmt.Errorf("bad month entered")
+	}
+	tasks, err := s.GetTasksByMonth(month)
+	if err != nil {
+		return fmt.Errorf("error fetching tasks: %v", err)
+	}
+	return s.WriteTaskList(filePath, tasks)
+}
+
+func writeTasksByWeek(s *model.Schedule) error {
+	input := bufio.NewScanner(os.Stdin)
+	fmt.Print("Enter the path of the file to write to: ")
+	input.Scan()
+	filePath := input.Text()
+	fmt.Print("Enter a month (1-12): ")
+	input.Scan()
+	month, err := strconv.Atoi(input.Text())
+	if err != nil {
+		return fmt.Errorf("bad month entered")
+	}
+	fmt.Print("Enter a day (1-31): ")
+	input.Scan()
+	day, err := strconv.Atoi(input.Text())
+	if err != nil {
+		return fmt.Errorf("bad day entered")
+	}
+	tasks, err := s.GetTasksByWeek(month, day)
+	if err != nil {
+		return fmt.Errorf("error fetching tasks: %v", err)
+	}
+	return s.WriteTaskList(filePath, tasks)
+}
+
+func writeTasksByDay(s *model.Schedule) error {
+	input := bufio.NewScanner(os.Stdin)
+	fmt.Print("Enter the path of the file to write to: ")
+	input.Scan()
+	filePath := input.Text()
+	fmt.Print("Enter a month (1-12): ")
+	input.Scan()
+	month, err := strconv.Atoi(input.Text())
+	if err != nil {
+		return fmt.Errorf("bad month entered")
+	}
+	fmt.Print("Enter a day (1-31): ")
+	input.Scan()
+	day, err := strconv.Atoi(input.Text())
+	if err != nil {
+		return fmt.Errorf("bad day entered")
+	}
+	tasks, err := s.GetTasksByDay(month, day)
+	if err != nil {
+		return fmt.Errorf("error fetching tasks: %v", err)
+	}
+	return s.WriteTaskList(filePath, tasks)
+}
 
 //!--
