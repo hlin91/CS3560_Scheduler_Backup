@@ -115,9 +115,9 @@ func requestRecurringInfo() (string, string, int, float32, float32, int, int, er
 	if err != nil {
 		return "", "", 0, 0, 0, 0, 0, fmt.Errorf("bad date entered")
 	}
-	fmt.Print("Enter start time (eg. '8.5' for 8 hours 30 min): ")
+	fmt.Print("Enter start time (eg. 15:30): ")
 	input.Scan()
-	startTime, err := strconv.ParseFloat(input.Text(), 32)
+	startTime, err := stringToTime(input.Text())
 	if err != nil {
 		return "", "", 0, 0, 0, 0, 0, fmt.Errorf("bad start time entered")
 	}

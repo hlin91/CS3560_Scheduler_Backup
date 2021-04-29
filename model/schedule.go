@@ -360,6 +360,7 @@ func (s Schedule) GetTasksByMonth(month int) ([]Task, error) {
 			}
 		}
 	}
+	indexSubtasks(result)
 	return result, nil
 }
 
@@ -375,6 +376,7 @@ func (s Schedule) GetTasksByDay(month, day int) ([]Task, error) {
 			result = append(result, t)
 		}
 	}
+	indexSubtasks(result)
 	return result, nil
 }
 
@@ -397,6 +399,7 @@ func (s Schedule) GetTasksByWeek(month, day int) ([]Task, error) {
 			result = append(result, t)
 		}
 	}
+	indexSubtasks(result)
 	return result, nil
 }
 
