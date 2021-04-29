@@ -520,13 +520,13 @@ func (s Schedule) WriteTasks(path string) error {
 	allTasks := []interface{}{}
 	// Compile all the tasks
 	for _, t := range s.TransientTasks {
-		allTasks = append(allTasks, &t)
+		allTasks = append(allTasks, t)
 	}
 	for _, t := range s.AntiTasks {
-		allTasks = append(allTasks, &t)
+		allTasks = append(allTasks, t)
 	}
 	for _, t := range s.RecurringTasks {
-		allTasks = append(allTasks, &t)
+		allTasks = append(allTasks, t)
 	}
 	outFile, err := os.Create(path)
 	if err != nil {
@@ -551,7 +551,7 @@ func (s Schedule) WriteTasks(path string) error {
 func (s Schedule) WriteTaskList(path string, tasks []Task) error {
 	l := []interface{}{}
 	for _, t := range tasks {
-		l = append(l, &t)
+		l = append(l, t)
 	}
 	outFile, err := os.Create(path)
 	if err != nil {

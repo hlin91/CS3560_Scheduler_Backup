@@ -136,7 +136,7 @@ func mapToTaskInfo(m map[string]interface{}) (string, string, int, float32, floa
 	if !ok {
 		return "", "", 0, 0, 0, fmt.Errorf("bad type value")
 	}
-	date, ok := m[DATE_KEY].(int)
+	date, ok := m[DATE_KEY].(float64)
 	if !ok {
 		return "", "", 0, 0, 0, fmt.Errorf("bad date value")
 	}
@@ -148,7 +148,7 @@ func mapToTaskInfo(m map[string]interface{}) (string, string, int, float32, floa
 	if !ok {
 		return "", "", 0, 0, 0, fmt.Errorf("bad duration value")
 	}
-	return name, taskType, date, float32(startTime), float32(duration), nil
+	return name, taskType, int(date), float32(startTime), float32(duration), nil
 }
 
 // mapToRecurInfo extracts recurring task information from a generic map
@@ -157,15 +157,15 @@ func mapToRecurInfo(m map[string]interface{}) (string, string, int, float32, flo
 	if err != nil {
 		return "", "", 0, 0, 0, 0, 0, err
 	}
-	endDate, ok := m[END_DATE_KEY].(int)
+	endDate, ok := m[END_DATE_KEY].(float64)
 	if !ok {
 		return "", "", 0, 0, 0, 0, 0, fmt.Errorf("bad end date value")
 	}
-	frequency, ok := m[FREQUENCY_KEY].(int)
+	frequency, ok := m[FREQUENCY_KEY].(float64)
 	if !ok {
 		return "", "", 0, 0, 0, 0, 0, fmt.Errorf("bad frequency value")
 	}
-	return name, taskType, date, startTime, duration, endDate, frequency, nil
+	return name, taskType, date, startTime, duration, int(endDate), int(frequency), nil
 }
 
 //!--
