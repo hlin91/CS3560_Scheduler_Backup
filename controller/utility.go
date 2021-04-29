@@ -53,19 +53,19 @@ func requestTaskInfo() (string, string, int, float32, float32, error) {
 	taskType := strings.TrimSpace(input.Text())
 	fmt.Print("Enter date (eg. 2020-11-14): ")
 	input.Scan()
-	date, err := stringToDateInt(input.Text())
+	date, err := stringToDateInt(strings.TrimSpace(input.Text()))
 	if err != nil {
 		return "", "", 0, 0, 0, fmt.Errorf("bad date entered")
 	}
 	fmt.Print("Enter start time (eg. 15:30): ")
 	input.Scan()
-	startTime, err := stringToTime(input.Text())
+	startTime, err := stringToTime(strings.TrimSpace(input.Text()))
 	if err != nil {
 		return "", "", 0, 0, 0, fmt.Errorf("bad start time entered")
 	}
 	fmt.Print("Enter duration (eg. '8.5' for 8 hours 30 min): ")
 	input.Scan()
-	duration, err := strconv.ParseFloat(input.Text(), 32)
+	duration, err := strconv.ParseFloat(strings.TrimSpace(input.Text()), 32)
 	if err != nil {
 		return "", "", 0, 0, 0, fmt.Errorf("bad duration entered")
 	}
@@ -80,19 +80,19 @@ func requestAntiInfo() (string, int, float32, float32, error) {
 	name := strings.TrimSpace(input.Text())
 	fmt.Print("Enter date (eg. 2020-11-14): ")
 	input.Scan()
-	date, err := stringToDateInt(input.Text())
+	date, err := stringToDateInt(strings.TrimSpace(input.Text()))
 	if err != nil {
 		return "", 0, 0, 0, fmt.Errorf("bad date entered")
 	}
 	fmt.Print("Enter start time (eg. 15:30): ")
 	input.Scan()
-	startTime, err := stringToTime(input.Text())
+	startTime, err := stringToTime(strings.TrimSpace(input.Text()))
 	if err != nil {
 		return "", 0, 0, 0, fmt.Errorf("bad start time entered")
 	}
 	fmt.Print("Enter duration (eg. '8.5' for 8 hours 30 min): ")
 	input.Scan()
-	duration, err := strconv.ParseFloat(input.Text(), 32)
+	duration, err := strconv.ParseFloat(strings.TrimSpace(input.Text()), 32)
 	if err != nil {
 		return "", 0, 0, 0, fmt.Errorf("bad duration entered")
 	}
@@ -111,25 +111,25 @@ func requestRecurringInfo() (string, string, int, float32, float32, int, int, er
 	taskType := strings.TrimSpace(input.Text())
 	fmt.Print("Enter date (eg. 2020-11-14): ")
 	input.Scan()
-	date, err := stringToDateInt(input.Text())
+	date, err := stringToDateInt(strings.TrimSpace(input.Text()))
 	if err != nil {
 		return "", "", 0, 0, 0, 0, 0, fmt.Errorf("bad date entered")
 	}
 	fmt.Print("Enter start time (eg. 15:30): ")
 	input.Scan()
-	startTime, err := stringToTime(input.Text())
+	startTime, err := stringToTime(strings.TrimSpace(input.Text()))
 	if err != nil {
 		return "", "", 0, 0, 0, 0, 0, fmt.Errorf("bad start time entered")
 	}
 	fmt.Print("Enter duration (eg. '8.5' for 8 hours 30 min): ")
 	input.Scan()
-	duration, err := strconv.ParseFloat(input.Text(), 32)
+	duration, err := strconv.ParseFloat(strings.TrimSpace(input.Text()), 32)
 	if err != nil {
 		return "", "", 0, 0, 0, 0, 0, fmt.Errorf("bad duration entered")
 	}
 	fmt.Print("Enter end date (eg. 2020-11-14): ")
 	input.Scan()
-	endDate, err := stringToDateInt(input.Text())
+	endDate, err := stringToDateInt(strings.TrimSpace(input.Text()))
 	if err != nil {
 		return "", "", 0, 0, 0, 0, 0, fmt.Errorf("bad date entered")
 	}
