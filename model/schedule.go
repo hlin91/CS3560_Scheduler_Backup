@@ -173,6 +173,11 @@ func (s *Schedule) AddAntiTask(name, taskType string, date int, startTime, durat
 	if err != nil {
 		return fmt.Errorf("AddAntiTask: error creating task: %v", err)
 	}
+	for _, t := range s.AntiTasks {
+		if t.Overlaps(a.Task) {
+			return fmt.Errorf("AddAntiTask: task overlaps with another anti task")
+		}
+	}
 	for _, t := range s.RecurringTasks {
 		if _, ok := a.GetCancelledSubtask(t); ok {
 			cancelledExists = true
