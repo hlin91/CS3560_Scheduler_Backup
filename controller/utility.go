@@ -6,10 +6,16 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/hlin91/CS3560_Scheduler_Backup/model"
+)
+
+const (
+	TIME_FORMAT = `^\pN{1,2}:\pN{2}$`
+	SEP_STRING  = "--------------------------------"
 )
 
 func displayHeader() {
@@ -51,9 +57,9 @@ func requestTaskInfo() (string, string, int, float32, float32, error) {
 	if err != nil {
 		return "", "", 0, 0, 0, fmt.Errorf("bad date entered")
 	}
-	fmt.Print("Enter start time (eg. '8.5' for 8 hours 30 min): ")
+	fmt.Print("Enter start time (eg. 15:30): ")
 	input.Scan()
-	startTime, err := strconv.ParseFloat(input.Text(), 32)
+	startTime, err := stringToTime(input.Text())
 	if err != nil {
 		return "", "", 0, 0, 0, fmt.Errorf("bad start time entered")
 	}
@@ -78,9 +84,9 @@ func requestAntiInfo() (string, int, float32, float32, error) {
 	if err != nil {
 		return "", 0, 0, 0, fmt.Errorf("bad date entered")
 	}
-	fmt.Print("Enter start time (eg. '8.5' for 8 hours 30 min): ")
+	fmt.Print("Enter start time (eg. 15:30): ")
 	input.Scan()
-	startTime, err := strconv.ParseFloat(input.Text(), 32)
+	startTime, err := stringToTime(input.Text())
 	if err != nil {
 		return "", 0, 0, 0, fmt.Errorf("bad start time entered")
 	}
@@ -151,6 +157,24 @@ func displayRecurringTypes() {
 	fmt.Println(model.EXERCISE)
 	fmt.Println(model.WORK)
 	fmt.Println(model.MEAL)
+}
+
+// Convert a time string of format TIME_FORMAT to a float time in hours
+func stringToTime(s string) (float32, error) {
+	re := regexp.MustCompile(TIME_FORMAT)
+	if !re.Match([]byte(s)) {
+		return 0, fmt.Errorf("invalid time string")
+	}
+	tok := strings.Split(s, ":")
+	hour, err := strconv.Atoi(tok[0])
+	if err != nil || (hour < 0 || hour > 23) {
+		return 0, fmt.Errorf("invalid hour")
+	}
+	min, err := strconv.Atoi(tok[1])
+	if err != nil || (min < 0 || min > 59) {
+		return 0, fmt.Errorf("invalid minutes")
+	}
+	return float32(hour) + (float32(min) / 60.0), nil
 }
 
 //!--

@@ -30,7 +30,8 @@ func NewTask(name, taskType string, date int, startTime, duration float32) (Task
 	}
 	result.Name = name
 	result.Date = date
-	result.StartTime = startTime
+	// Round time to nearest .25
+	result.StartTime = float32(math.Round(float64(startTime)/.25) * .25)
 	// Round duration to nearest .25
 	duration = float32(math.Round(float64(duration)/.25) * .25)
 	result.Duration = duration
@@ -39,7 +40,8 @@ func NewTask(name, taskType string, date int, startTime, duration float32) (Task
 }
 
 func (t Task) String() string {
-	return fmt.Sprintf("--------------------------------\nName: %v\nType: %v\nStart Date: %v\nStart Time: %v\nDuration: %v\n--------------------------------", t.Name, t.Type, dateIntToString(t.Date), t.StartTime, t.Duration)
+	return fmt.Sprintf("Name: %v\nType: %v\nStart Date: %v\nStart Time: %02d:%02d\nDuration: %v",
+		t.Name, t.Type, dateIntToString(t.Date), int(math.Floor(float64(t.StartTime))), int((float64(t.StartTime)-math.Floor(float64(t.StartTime)))*60), t.Duration)
 }
 
 func (t Task) GetStartYear() int {

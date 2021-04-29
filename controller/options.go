@@ -96,15 +96,21 @@ func viewTask(s *model.Schedule) error {
 	fmt.Print("Enter a task name: ")
 	input.Scan()
 	if t, ok := s.TransientTasks[input.Text()]; ok {
+		fmt.Println(SEP_STRING)
 		fmt.Println(t)
+		fmt.Println(SEP_STRING)
 		return nil
 	}
 	if t, ok := s.RecurringTasks[input.Text()]; ok {
+		fmt.Println(SEP_STRING)
 		fmt.Println(t)
+		fmt.Println(SEP_STRING)
 		return nil
 	}
 	if t, ok := s.AntiTasks[input.Text()]; ok {
+		fmt.Println(SEP_STRING)
 		fmt.Println(t)
+		fmt.Println(SEP_STRING)
 		return nil
 	}
 	return fmt.Errorf("task name does not exist in schedule")
@@ -122,11 +128,14 @@ func viewTaskByMonth(s *model.Schedule) error {
 	if err != nil {
 		return err
 	}
-	for i, t := range tasks {
+	if len(tasks) == 0 {
+		fmt.Println("No tasks found")
+		return nil
+	}
+	fmt.Println(SEP_STRING)
+	for _, t := range tasks {
 		fmt.Println(t)
-		if i < len(tasks)-1 {
-			fmt.Println("-----------------------------------------")
-		}
+		fmt.Println(SEP_STRING)
 	}
 	return nil
 }
@@ -149,11 +158,14 @@ func viewTaskByWeek(s *model.Schedule) error {
 	if err != nil {
 		return err
 	}
-	for i, t := range tasks {
+	if len(tasks) == 0 {
+		fmt.Println("No tasks found")
+		return nil
+	}
+	fmt.Println(SEP_STRING)
+	for _, t := range tasks {
 		fmt.Println(t)
-		if i < len(tasks)-1 {
-			fmt.Println("-----------------------------------------")
-		}
+		fmt.Println(SEP_STRING)
 	}
 	return nil
 }
@@ -176,10 +188,15 @@ func viewTaskByDay(s *model.Schedule) error {
 	if err != nil {
 		return err
 	}
+	if len(tasks) == 0 {
+		fmt.Println("No tasks found")
+		return nil
+	}
+	fmt.Println(SEP_STRING)
 	for i, t := range tasks {
 		fmt.Println(t)
 		if i < len(tasks)-1 {
-			fmt.Println("-----------------------------------------")
+			fmt.Println(SEP_STRING)
 		}
 	}
 	return nil
