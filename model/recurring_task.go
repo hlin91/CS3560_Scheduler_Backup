@@ -43,7 +43,7 @@ func NewRecurringTask(name, taskType string, date int, startTime, duration float
 }
 
 func (r RecurringTask) String() string {
-	return r.Task.String() + fmt.Sprintf("\nEnd Date: %v\nFrequency: %v\n--------------------------------", dateIntToString(r.EndDate), r.Frequency)
+	return r.Task.String() + fmt.Sprintf("\nEnd Date: %v\nFrequency: %v", dateIntToString(r.EndDate), r.Frequency)
 }
 
 func (r RecurringTask) GetEndYear() int {
