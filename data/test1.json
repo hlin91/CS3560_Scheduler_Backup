@@ -1,0 +1,27 @@
+[
+    {
+      "Name" : "Get Howling Rays",
+      "Type" : "Meal",
+      "StartDate" : 20200420,
+      "StartTime" : 17,
+      "Duration" : 1,
+      "EndDate" : 20200507,
+      "Frequency" : 1
+    },
+    {
+      "Name" : "Finish Homework For CS 3560",
+      "Type" : "Study",
+      "StartDate" : 20211713,
+      "StartTime" : 15,
+      "Duration" : 1,
+      "EndDate" : 20200507,
+      "Frequency" : 1
+    },
+    {
+      "Name" : "Going to Hangout w/ Friends",
+      "Type" : "Shopping",
+      "Date" : 20200501,
+      "StartTime" : 10,
+      "Duration" : 1.5
+    }
+  ]

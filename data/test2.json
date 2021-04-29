@@ -1,0 +1,9 @@
+[
+	{
+		"Name": "Get Food",
+		"Type": "Shopping",
+		"StartDate": 20210105,
+		"StartTime": 2.5,
+		"Duration": 7.5
+	}
+]
