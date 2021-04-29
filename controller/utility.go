@@ -133,7 +133,7 @@ func requestRecurringInfo() (string, string, int, float32, float32, int, int, er
 	if err != nil {
 		return "", "", 0, 0, 0, 0, 0, fmt.Errorf("bad date entered")
 	}
-	fmt.Print("Enter frequency (1 or 7): ")
+	fmt.Print("Enter frequency (1-7): ")
 	input.Scan()
 	frequency, err := strconv.Atoi(input.Text())
 	if err != nil {
