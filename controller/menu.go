@@ -62,7 +62,7 @@ func NewMenu(options []Menuer) Menu {
 // Display prints all the options in the menu and an input prompt
 func (m Menu) Display() {
 	for i, o := range m.options {
-		fmt.Printf("%d. %s\n", i+1, o.Title())
+		fmt.Printf("%d.\t%s\n", i+1, o.Title())
 	}
 	fmt.Print("\nEnter an option: ")
 }
