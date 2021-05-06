@@ -1,4 +1,5 @@
 // Package controller provides functions to edit the schedule or view (ie. command line)
+// schedule_menu_item.go provides an implementation of the Menuer interface designed for use with a schedule
 package controller
 
 import "github.com/hlin91/CS3560_Scheduler_Backup/model"

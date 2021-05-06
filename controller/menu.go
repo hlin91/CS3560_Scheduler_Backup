@@ -1,5 +1,5 @@
 // Package controller provides functions to edit the schedule or view (ie. command line)
-// menu.go provides classes to create a generic menu
+// menu.go provides classes to create a generic menu object
 package controller
 
 import (

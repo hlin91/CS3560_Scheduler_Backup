@@ -30,8 +30,7 @@ func (a AntiTask) Cancels(t Task) bool {
 	return a.Duration >= timeDelta+t.Duration
 }
 
-// GetCancelledSubtask returns the subtask this anti task cancels and a bool to indicate
-// if such a task was found
+// GetCancelledSubtask returns the subtask this anti task cancels and a bool to indicate if such a task was found
 func (a AntiTask) GetCancelledSubtask(r RecurringTask) (Task, bool) {
 	aStart, _ := a.GetStartDate()
 	rStart, _ := r.GetStartDate()

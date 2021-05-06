@@ -15,102 +15,13 @@ type Schedule struct {
 	RecurringTasks map[string]RecurringTask
 }
 
+// NewSchedule creates and returns a schedule
 func NewSchedule() *Schedule {
 	return &Schedule{
 		TransientTasks: map[string]Task{},
 		AntiTasks:      map[string]AntiTask{},
 		RecurringTasks: map[string]RecurringTask{},
 	}
-}
-
-// hasAnti checks if an anti task that cancels the specified task exists in the schedule
-func (s Schedule) hasAnti(task Task) bool {
-	for _, anti := range s.AntiTasks {
-		if anti.Cancels(task) {
-			return true
-		}
-	}
-	return false
-}
-
-// hasNameConflict checks if a task of the same name already exists in the schedule
-func (s Schedule) hasNameConflict(name string) bool {
-	if _, ok := s.TransientTasks[name]; ok {
-		return true
-	}
-	if _, ok := s.AntiTasks[name]; ok {
-		return true
-	}
-	if _, ok := s.RecurringTasks[name]; ok {
-		return true
-	}
-	return false
-}
-
-// hasAddConflict checks if a task will produce scheduling conflicts if added
-func (s Schedule) hasAddConflict(task Task) bool {
-	// Check against all transient tasks
-	for n, t := range s.TransientTasks {
-		if n == task.Name {
-			// Don't check against itself
-			continue
-		}
-		if task.Overlaps(t) {
-			return true
-		}
-	}
-	// Check against all recurring tasks
-	for _, t := range s.RecurringTasks {
-		overlaps, _ := t.GetOverlappingSubtasks(task)
-		for _, o := range overlaps {
-			if !s.hasAnti(o) {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-// hasAddConflictRecurring checks if a recurring task will produce scheduling conflicts if added
-func (s Schedule) hasAddConflictRecurring(task RecurringTask) bool {
-	for _, t := range s.TransientTasks {
-		overlaps, _ := task.GetOverlappingSubtasks(t)
-		for _, o := range overlaps {
-			if !s.hasAnti(o) {
-				return true
-			}
-		}
-	}
-	// Check against all recurring tasks
-	// As per the project specs, anti tasks cannot be applied to overlaps between 2 recurring tasks
-	for n, t := range s.RecurringTasks {
-		if n == task.Name {
-			continue
-		}
-		if task.OverlapsRecurring(t) {
-			return true
-		}
-	}
-	return false
-}
-
-// hasDeleteConflict checks if a task will produce a scheduling conflict if deleted
-func (s Schedule) hasDeleteConflict(task Task) bool {
-	// Only have to check deletion conflicts if task is an anti task
-	if !isAntiType(task.Type) {
-		return false
-	}
-	a := AntiTask{task}
-	for _, t := range s.RecurringTasks {
-		// For every cancelled subtask, check if there is an overlap in the schedule with that
-		// subtask
-		if cancelled, ok := a.GetCancelledSubtask(t); ok {
-			if s.hasAddConflict(cancelled) {
-				return true
-			}
-		}
-	}
-	return false
 }
 
 // AddTransientTask creates and adds a transient task to the schedule
@@ -221,7 +132,7 @@ func (s *Schedule) DeleteTask(name string) error {
 	}
 	if r, ok := s.RecurringTasks[name]; ok {
 		delete(s.RecurringTasks, name)
-		// Delete all corresponding anti tasks
+		// Delete all corresponding anti tasks for the recurring task
 		for _, a := range s.AntiTasks {
 			if _, ok := a.GetCancelledSubtask(r); ok {
 				delete(s.AntiTasks, a.Name)
@@ -230,6 +141,7 @@ func (s *Schedule) DeleteTask(name string) error {
 		return nil
 	}
 	if a, ok := s.AntiTasks[name]; ok {
+		// For anti tasks, we have to check if deleting will not create a conflict
 		if s.hasDeleteConflict(a.Task) {
 			return fmt.Errorf("DeleteTask: deletion creates a schedule conflict")
 		}
@@ -365,7 +277,6 @@ func (s Schedule) GetTasksByMonth(month int) ([]Task, error) {
 			}
 		}
 	}
-	indexSubtasks(result)
 	return result, nil
 }
 
@@ -381,7 +292,6 @@ func (s Schedule) GetTasksByDay(month, day int) ([]Task, error) {
 			result = append(result, t)
 		}
 	}
-	indexSubtasks(result)
 	return result, nil
 }
 
@@ -404,7 +314,6 @@ func (s Schedule) GetTasksByWeek(month, day int) ([]Task, error) {
 			result = append(result, t)
 		}
 	}
-	indexSubtasks(result)
 	return result, nil
 }
 
@@ -515,6 +424,8 @@ func (s *Schedule) LoadFile(path string) error {
 		if err != nil {
 			return fmt.Errorf("LoadFile: error loading tasks: %v", err)
 		}
+		// Append date to disambiguate subtask name
+		name += fmt.Sprintf(" (%4d-%02d-%02d)", date/10000, (date/100)%100, date%100)
 		err = s.AddSubtask(name, taskType, date, startTime, duration)
 		if err != nil {
 			return fmt.Errorf("LoadFile: error loading tasks: %v", err)
@@ -578,6 +489,96 @@ func (s Schedule) WriteTaskList(path string, tasks []Task) error {
 		return fmt.Errorf("WriteTaskList: error closing file: %v", err)
 	}
 	return nil
+}
+
+// hasAnti checks if an anti task that cancels the specified task exists in the schedule
+func (s Schedule) hasAnti(task Task) bool {
+	for _, anti := range s.AntiTasks {
+		if anti.Cancels(task) {
+			return true
+		}
+	}
+	return false
+}
+
+// hasNameConflict checks if a task of the same name already exists in the schedule
+func (s Schedule) hasNameConflict(name string) bool {
+	if _, ok := s.TransientTasks[name]; ok {
+		return true
+	}
+	if _, ok := s.AntiTasks[name]; ok {
+		return true
+	}
+	if _, ok := s.RecurringTasks[name]; ok {
+		return true
+	}
+	return false
+}
+
+// hasAddConflict checks if a task will produce scheduling conflicts if added
+func (s Schedule) hasAddConflict(task Task) bool {
+	// Check against all transient tasks
+	for n, t := range s.TransientTasks {
+		if n == task.Name {
+			// Don't check against itself
+			continue
+		}
+		if task.Overlaps(t) {
+			return true
+		}
+	}
+	// Check against all recurring tasks
+	for _, t := range s.RecurringTasks {
+		overlaps, _ := t.GetOverlappingSubtasks(task)
+		for _, o := range overlaps {
+			if !s.hasAnti(o) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// hasAddConflictRecurring checks if a recurring task will produce scheduling conflicts if added
+func (s Schedule) hasAddConflictRecurring(task RecurringTask) bool {
+	for _, t := range s.TransientTasks {
+		overlaps, _ := task.GetOverlappingSubtasks(t)
+		for _, o := range overlaps {
+			if !s.hasAnti(o) {
+				return true
+			}
+		}
+	}
+	// Check against all recurring tasks
+	// As per the project specs, anti tasks cannot be applied to overlaps between 2 recurring tasks
+	for n, t := range s.RecurringTasks {
+		if n == task.Name {
+			continue
+		}
+		if task.OverlapsRecurring(t) {
+			return true
+		}
+	}
+	return false
+}
+
+// hasDeleteConflict checks if a task will produce a scheduling conflict if deleted
+func (s Schedule) hasDeleteConflict(task Task) bool {
+	// Only have to check deletion conflicts if task is an anti task
+	if !isAntiType(task.Type) {
+		return false
+	}
+	a := AntiTask{task}
+	for _, t := range s.RecurringTasks {
+		// For every cancelled subtask, check if there is an overlap in the schedule with that
+		// subtask
+		if cancelled, ok := a.GetCancelledSubtask(t); ok {
+			if s.hasAddConflict(cancelled) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 //!--

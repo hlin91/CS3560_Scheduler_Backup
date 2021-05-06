@@ -160,7 +160,6 @@ func (r RecurringTask) GetOverlappingSubtasks(task Task) ([]Task, error) {
 	if tomorrow.Before(rEndDate) && tt.Overlaps(task) {
 		result = append(result, tt)
 	}
-	indexSubtasks(result) // Add index numbers to subtask names
 	return result, nil
 }
 
@@ -194,7 +193,6 @@ func (r RecurringTask) GetOverlappingSubtasksRecurring(task RecurringTask) ([]Ta
 		}
 		startDate = startDate.Add(24 * time.Hour * time.Duration(r.Frequency))
 	}
-	indexSubtasks(result) // Add index numbers to subtask names
 	return result, nil
 }
 

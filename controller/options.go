@@ -53,6 +53,9 @@ func MakeMenu(s *model.Schedule) Menu {
 	return NewMenu(m)
 }
 
+// The following functions implement each option in the menu
+
+// createTask allows the user to create and add a task to the schedule
 func createTask(s *model.Schedule) error {
 	input := bufio.NewScanner(os.Stdin)
 	valid := false
@@ -91,6 +94,7 @@ func createTask(s *model.Schedule) error {
 	return nil
 }
 
+// viewTask allows the user to view the details of a task by name
 func viewTask(s *model.Schedule) error {
 	input := bufio.NewScanner(os.Stdin)
 	fmt.Print("Enter a task name: ")
@@ -116,6 +120,7 @@ func viewTask(s *model.Schedule) error {
 	return fmt.Errorf("task name does not exist in schedule")
 }
 
+// viewTaskByMonth allows the user to view all tasks for a specified month
 func viewTaskByMonth(s *model.Schedule) error {
 	input := bufio.NewScanner(os.Stdin)
 	fmt.Print("Enter a month (1-12): ")
@@ -140,6 +145,7 @@ func viewTaskByMonth(s *model.Schedule) error {
 	return nil
 }
 
+// viewTaskByWeek allows the user to view all tasks for the week of a specified day
 func viewTaskByWeek(s *model.Schedule) error {
 	input := bufio.NewScanner(os.Stdin)
 	fmt.Print("Enter a month (1-12): ")
@@ -170,6 +176,7 @@ func viewTaskByWeek(s *model.Schedule) error {
 	return nil
 }
 
+// viewTaskByDay allows the user to view all tasks for a specified day
 func viewTaskByDay(s *model.Schedule) error {
 	input := bufio.NewScanner(os.Stdin)
 	fmt.Print("Enter a month (1-12): ")
@@ -202,6 +209,7 @@ func viewTaskByDay(s *model.Schedule) error {
 	return nil
 }
 
+// deleteTask allows the user to delete a task by name
 func deleteTask(s *model.Schedule) error {
 	input := bufio.NewScanner(os.Stdin)
 	fmt.Print("Enter task name: ")
@@ -209,6 +217,7 @@ func deleteTask(s *model.Schedule) error {
 	return s.DeleteTask(input.Text())
 }
 
+// editTask allows the user to edit the details of a task by name
 func editTask(s *model.Schedule) error {
 	input := bufio.NewScanner(os.Stdin)
 	fmt.Print("Enter the name of the task to edit: ")
@@ -244,6 +253,7 @@ func editTask(s *model.Schedule) error {
 	return fmt.Errorf("could not find task with name %q", taskName)
 }
 
+// loadFile allows the user to load the tasks from a specified json file
 func loadFile(s *model.Schedule) error {
 	input := bufio.NewScanner(os.Stdin)
 	fmt.Print("Enter the path of the file to load: ")
@@ -252,6 +262,7 @@ func loadFile(s *model.Schedule) error {
 	return s.LoadFile(filePath)
 }
 
+// writeTasks allows the user to write all tasks to a specified json file
 func writeTasks(s *model.Schedule) error {
 	input := bufio.NewScanner(os.Stdin)
 	fmt.Print("Enter the path of the file to write to: ")
@@ -260,6 +271,7 @@ func writeTasks(s *model.Schedule) error {
 	return s.WriteTasks(filePath)
 }
 
+// writeTasksByMonth allows the user to write all tasks for a specified month to a json file
 func writeTasksByMonth(s *model.Schedule) error {
 	input := bufio.NewScanner(os.Stdin)
 	fmt.Print("Enter the path of the file to write to: ")
@@ -278,6 +290,7 @@ func writeTasksByMonth(s *model.Schedule) error {
 	return s.WriteTaskList(filePath, tasks)
 }
 
+// writeTasksByWeek allows the user to write all tasks for a specified week to a json file
 func writeTasksByWeek(s *model.Schedule) error {
 	input := bufio.NewScanner(os.Stdin)
 	fmt.Print("Enter the path of the file to write to: ")
@@ -302,6 +315,7 @@ func writeTasksByWeek(s *model.Schedule) error {
 	return s.WriteTaskList(filePath, tasks)
 }
 
+// writeTasksByDay allows the user to write all tasks for a specified day to a json file
 func writeTasksByDay(s *model.Schedule) error {
 	input := bufio.NewScanner(os.Stdin)
 	fmt.Print("Enter the path of the file to write to: ")
