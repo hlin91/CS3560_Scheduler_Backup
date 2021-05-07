@@ -200,7 +200,7 @@ func viewTaskByDay(s *model.Schedule) error {
 		return nil
 	}
 	fmt.Println(SEP_STRING)
-	for i, t := range tasks {
+	for _, t := range tasks {
 		fmt.Println(t)
 		fmt.Println(SEP_STRING)
 	}
