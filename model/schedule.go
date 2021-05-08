@@ -378,8 +378,8 @@ func (s *Schedule) LoadFile(path string) error {
 	}
 	// Add the recurring tasks, then the anti tasks, then the transient and subtasks
 	for _, m := range recurTaskBuff {
-		if !recurKeysPresent(m) {
-			return fmt.Errorf("LoadFile: error loading tasks: task values missing")
+		if err := recurKeysPresent(m); err != nil {
+			return fmt.Errorf("LoadFile: error loading tasks: task values missing: %v", err)
 		}
 		name, taskType, date, startTime, duration, endDate, frequency, err := mapToRecurInfo(m)
 		if err != nil {
@@ -391,8 +391,8 @@ func (s *Schedule) LoadFile(path string) error {
 		}
 	}
 	for _, m := range antiTaskBuff {
-		if !taskKeysPresent(m) {
-			return fmt.Errorf("LoadFile: error loading tasks: task values missing")
+		if err := taskKeysPresent(m); err != nil {
+			return fmt.Errorf("LoadFile: error loading tasks: task values missing: %v", err)
 		}
 		name, taskType, date, startTime, duration, err := mapToTaskInfo(m)
 		if err != nil {
@@ -404,8 +404,8 @@ func (s *Schedule) LoadFile(path string) error {
 		}
 	}
 	for _, m := range transientTaskBuff {
-		if !taskKeysPresent(m) {
-			return fmt.Errorf("LoadFile: error loading tasks: task values missing")
+		if err := taskKeysPresent(m); err != nil {
+			return fmt.Errorf("LoadFile: error loading tasks: task values missing: %v", err)
 		}
 		name, taskType, date, startTime, duration, err := mapToTaskInfo(m)
 		if err != nil {
@@ -417,8 +417,8 @@ func (s *Schedule) LoadFile(path string) error {
 		}
 	}
 	for _, m := range subTaskBuff {
-		if !taskKeysPresent(m) {
-			return fmt.Errorf("LoadFile: error loading tasks: task values missing")
+		if err := taskKeysPresent(m); err != nil {
+			return fmt.Errorf("LoadFile: error loading tasks: task values missing: %v", err)
 		}
 		name, taskType, date, startTime, duration, err := mapToTaskInfo(m)
 		if err != nil {
@@ -439,13 +439,13 @@ func (s Schedule) WriteTasks(path string) error {
 	allTasks := []interface{}{}
 	// Compile all the tasks
 	for _, t := range s.TransientTasks {
-		allTasks = append(allTasks, t)
+		allTasks = append(allTasks, taskToContainer(t))
 	}
 	for _, t := range s.AntiTasks {
-		allTasks = append(allTasks, t)
+		allTasks = append(allTasks, taskToContainer(t.Task))
 	}
 	for _, t := range s.RecurringTasks {
-		allTasks = append(allTasks, t)
+		allTasks = append(allTasks, recurToContainer(t))
 	}
 	outFile, err := os.Create(path)
 	if err != nil {
@@ -470,7 +470,7 @@ func (s Schedule) WriteTasks(path string) error {
 func (s Schedule) WriteTaskList(path string, tasks []Task) error {
 	l := []interface{}{}
 	for _, t := range tasks {
-		l = append(l, t)
+		l = append(l, taskToContainer(t))
 	}
 	outFile, err := os.Create(path)
 	if err != nil {

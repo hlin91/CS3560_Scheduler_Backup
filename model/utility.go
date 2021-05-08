@@ -28,7 +28,8 @@ const (
 	// Key names for JSON marshaling
 	NAME_KEY       = "Name"
 	TYPE_KEY       = "Type"
-	DATE_KEY       = "StartDate"
+	DATE_KEY       = "Date"
+	START_DATE_KEY = "StartDate"
 	START_TIME_KEY = "StartTime"
 	DURATION_KEY   = "Duration"
 	END_DATE_KEY   = "EndDate"
@@ -93,37 +94,51 @@ func indexSubtasks(tasks []Task) {
 }
 
 // taskKeysPresent checks if the necessary keys for a task are present in a generic string map
-func taskKeysPresent(m map[string]interface{}) bool {
+func taskKeysPresent(m map[string]interface{}) error {
 	if _, ok := m[NAME_KEY]; !ok {
-		return false
+		return fmt.Errorf("missing %q key", NAME_KEY)
 	}
 	if _, ok := m[TYPE_KEY]; !ok {
-		return false
+		return fmt.Errorf("missing %q key", TYPE_KEY)
 	}
 	if _, ok := m[DATE_KEY]; !ok {
-		return false
+		return fmt.Errorf("missing %q key", DATE_KEY)
 	}
 	if _, ok := m[START_TIME_KEY]; !ok {
-		return false
+		return fmt.Errorf("missing %q key", START_TIME_KEY)
 	}
 	if _, ok := m[DURATION_KEY]; !ok {
-		return false
+		return fmt.Errorf("missing %q key", DURATION_KEY)
 	}
-	return true
+	return nil
 }
 
 // recurKeysPresent checks if the necessary keys for a recurring task are present in a generic map
-func recurKeysPresent(m map[string]interface{}) bool {
-	if !taskKeysPresent(m) {
-		return false
+func recurKeysPresent(m map[string]interface{}) error {
+	// Because of the Date being known as StartDate, we cannot reuse the logic of taskKeysPresent
+	// and must explicitly repeat it here
+	if _, ok := m[NAME_KEY]; !ok {
+		return fmt.Errorf("missing %q key", NAME_KEY)
+	}
+	if _, ok := m[TYPE_KEY]; !ok {
+		return fmt.Errorf("missing %q key", TYPE_KEY)
+	}
+	if _, ok := m[START_DATE_KEY]; !ok {
+		return fmt.Errorf("missing %q key", START_DATE_KEY)
+	}
+	if _, ok := m[START_TIME_KEY]; !ok {
+		return fmt.Errorf("missing %q key", START_TIME_KEY)
+	}
+	if _, ok := m[DURATION_KEY]; !ok {
+		return fmt.Errorf("missing %q key", DURATION_KEY)
 	}
 	if _, ok := m[END_DATE_KEY]; !ok {
-		return false
+		return fmt.Errorf("missing %q key", END_DATE_KEY)
 	}
 	if _, ok := m[FREQUENCY_KEY]; !ok {
-		return false
+		return fmt.Errorf("missing %q key", FREQUENCY_KEY)
 	}
-	return true
+	return nil
 }
 
 // mapToTaskInfo extracts task information from a generic map
@@ -153,9 +168,26 @@ func mapToTaskInfo(m map[string]interface{}) (string, string, int, float32, floa
 
 // mapToRecurInfo extracts recurring task information from a generic map
 func mapToRecurInfo(m map[string]interface{}) (string, string, int, float32, float32, int, int, error) {
-	name, taskType, date, startTime, duration, err := mapToTaskInfo(m)
-	if err != nil {
-		return "", "", 0, 0, 0, 0, 0, err
+	// Again we cannot reuse mapToTaskInfo due to the unfortunate discrepency in Date versus StartDate
+	name, ok := m[NAME_KEY].(string)
+	if !ok {
+		return "", "", 0, 0, 0, 0, 0, fmt.Errorf("bad name value")
+	}
+	taskType, ok := m[TYPE_KEY].(string)
+	if !ok {
+		return "", "", 0, 0, 0, 0, 0, fmt.Errorf("bad type value")
+	}
+	date, ok := m[START_DATE_KEY].(float64)
+	if !ok {
+		return "", "", 0, 0, 0, 0, 0, fmt.Errorf("bad date value")
+	}
+	startTime, ok := m[START_TIME_KEY].(float64)
+	if !ok {
+		return "", "", 0, 0, 0, 0, 0, fmt.Errorf("bad start time value")
+	}
+	duration, ok := m[DURATION_KEY].(float64)
+	if !ok {
+		return "", "", 0, 0, 0, 0, 0, fmt.Errorf("bad duration value")
 	}
 	endDate, ok := m[END_DATE_KEY].(float64)
 	if !ok {
@@ -165,7 +197,7 @@ func mapToRecurInfo(m map[string]interface{}) (string, string, int, float32, flo
 	if !ok {
 		return "", "", 0, 0, 0, 0, 0, fmt.Errorf("bad frequency value")
 	}
-	return name, taskType, date, startTime, duration, int(endDate), int(frequency), nil
+	return name, taskType, int(date), float32(startTime), float32(duration), int(endDate), int(frequency), nil
 }
 
 //!--

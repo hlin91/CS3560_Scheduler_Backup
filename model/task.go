@@ -12,7 +12,7 @@ import (
 type Task struct {
 	Name      string
 	Type      string
-	Date      int `json:"StartDate"`
+	Date      int
 	StartTime float32
 	Duration  float32
 }
