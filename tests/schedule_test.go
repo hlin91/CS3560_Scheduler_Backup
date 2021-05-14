@@ -64,3 +64,17 @@ func TestReversion(t *testing.T) {
 		t.Errorf("Schedule failed to revert after conflict in Set1.json")
 	}
 }
+
+func TestAnti(t *testing.T) {
+	s := model.NewSchedule()
+	s.AddRecurringTask("CS3560-Tu", "Class", 20200414, 19, 1.25, 20200505, 7)
+	if err := s.AddAntiTask("Bad Anti Task", "Cancellation", 20200415, 19, 1.25); err == nil {
+		t.Errorf("Added bad anti task to schedule")
+	}
+	if err := s.AddAntiTask("Holiday", "Cancellation", 20200421, 19, 1.25); err != nil {
+		t.Errorf("Failed to add good anti task")
+	}
+	if err := s.AddTransientTask("Pooping", "Appointment", 20200421, 19, 1); err != nil {
+		t.Errorf("Anti task failed to allow transient task to be scheduled")
+	}
+}
