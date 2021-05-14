@@ -47,3 +47,20 @@ func TestScenario2(t *testing.T) {
 		t.Errorf("Failed to load Set1")
 	}
 }
+
+func TestReversion(t *testing.T) {
+	s := model.NewSchedule()
+	s.AddRecurringTask("CS3560-Tu", "Class", 20200414, 19, 1.25, 20200505, 7)
+	if err := s.LoadFile("../data/ReversionTest1.json"); err == nil {
+		t.Errorf("Loaded ReversionTest1.json file with conflicting task")
+	}
+	if _, ok := s.TransientTasks["No conflict 1"]; ok {
+		t.Errorf("Schedule failed to revert after conflict in ReversionTest1.json")
+	}
+	if err := s.LoadFile("../data/Set1.json"); err == nil {
+		t.Errorf("Loaded Set1.json file with conflicting task")
+	}
+	if _, ok := s.AntiTasks["Skip For Visit"]; ok {
+		t.Errorf("Schedule failed to revert after conflict in Set1.json")
+	}
+}

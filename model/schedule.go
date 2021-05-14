@@ -376,58 +376,100 @@ func (s *Schedule) LoadFile(path string) error {
 		}
 		return fmt.Errorf("LoadFile: error parsing tasks: bad number of keys found")
 	}
+	transientBackup := make(map[string]Task)
+	antiBackup := make(map[string]AntiTask)
+	recurBackup := make(map[string]RecurringTask)
 	// Add the recurring tasks, then the anti tasks, then the transient and subtasks
+	// Backup recurring tasks
+	for key, val := range s.RecurringTasks {
+		recurBackup[key] = val
+	}
 	for _, m := range recurTaskBuff {
 		if err := recurKeysPresent(m); err != nil {
+			s.RecurringTasks = recurBackup // Revert recurring tasks if there is an error
 			return fmt.Errorf("LoadFile: error loading tasks: task values missing: %v", err)
 		}
 		name, taskType, date, startTime, duration, endDate, frequency, err := mapToRecurInfo(m)
 		if err != nil {
+			s.RecurringTasks = recurBackup
 			return fmt.Errorf("LoadFile: error loading tasks: %v", err)
 		}
 		err = s.AddRecurringTask(name, taskType, date, startTime, duration, endDate, frequency)
 		if err != nil {
+			s.RecurringTasks = recurBackup
 			return fmt.Errorf("LoadFile: error loading tasks: %v", err)
 		}
 	}
+	// Backup anti tasks
+	for key, val := range s.AntiTasks {
+		antiBackup[key] = val
+	}
 	for _, m := range antiTaskBuff {
 		if err := taskKeysPresent(m); err != nil {
+			s.RecurringTasks = recurBackup
+			s.AntiTasks = antiBackup
 			return fmt.Errorf("LoadFile: error loading tasks: task values missing: %v", err)
 		}
 		name, taskType, date, startTime, duration, err := mapToTaskInfo(m)
 		if err != nil {
+			s.RecurringTasks = recurBackup
+			s.AntiTasks = antiBackup
 			return fmt.Errorf("LoadFile: error loading tasks: %v", err)
 		}
 		err = s.AddAntiTask(name, taskType, date, startTime, duration)
 		if err != nil {
+			s.RecurringTasks = recurBackup
+			s.AntiTasks = antiBackup
 			return fmt.Errorf("LoadFile: error loading tasks: %v", err)
 		}
 	}
+	// Backup transient tasks
+	for key, val := range s.TransientTasks {
+		transientBackup[key] = val
+	}
 	for _, m := range transientTaskBuff {
 		if err := taskKeysPresent(m); err != nil {
+			s.RecurringTasks = recurBackup
+			s.AntiTasks = antiBackup
+			s.TransientTasks = transientBackup
 			return fmt.Errorf("LoadFile: error loading tasks: task values missing: %v", err)
 		}
 		name, taskType, date, startTime, duration, err := mapToTaskInfo(m)
 		if err != nil {
+			s.RecurringTasks = recurBackup
+			s.AntiTasks = antiBackup
+			s.TransientTasks = transientBackup
 			return fmt.Errorf("LoadFile: error loading tasks: %v", err)
 		}
 		err = s.AddTransientTask(name, taskType, date, startTime, duration)
 		if err != nil {
+			s.RecurringTasks = recurBackup
+			s.AntiTasks = antiBackup
+			s.TransientTasks = transientBackup
 			return fmt.Errorf("LoadFile: error loading tasks: %v", err)
 		}
 	}
 	for _, m := range subTaskBuff {
 		if err := taskKeysPresent(m); err != nil {
+			s.RecurringTasks = recurBackup
+			s.AntiTasks = antiBackup
+			s.TransientTasks = transientBackup
 			return fmt.Errorf("LoadFile: error loading tasks: task values missing: %v", err)
 		}
 		name, taskType, date, startTime, duration, err := mapToTaskInfo(m)
 		if err != nil {
+			s.RecurringTasks = recurBackup
+			s.AntiTasks = antiBackup
+			s.TransientTasks = transientBackup
 			return fmt.Errorf("LoadFile: error loading tasks: %v", err)
 		}
 		// Append date to disambiguate subtask name
 		name += fmt.Sprintf(" (%4d-%02d-%02d)", date/10000, (date/100)%100, date%100)
 		err = s.AddSubtask(name, taskType, date, startTime, duration)
 		if err != nil {
+			s.RecurringTasks = recurBackup
+			s.AntiTasks = antiBackup
+			s.TransientTasks = transientBackup
 			return fmt.Errorf("LoadFile: error loading tasks: %v", err)
 		}
 	}

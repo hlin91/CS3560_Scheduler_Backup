@@ -1,0 +1,16 @@
+[
+    {
+        "Name" : "No conflict 1",
+        "Type" : "Appointment",
+        "Date" : 20200413,
+        "StartTime" : 12,
+        "Duration" : 1
+    },
+    {
+        "Name" : "Conflict",
+        "Type" : "Appointment",
+        "Date" : 20200413,
+        "StartTime" : 23,
+        "Duration" : 23
+    }
+]
